@@ -112,6 +112,13 @@ and other encoding rules.
 :   Use the unbounded size data types (`INTEGER_t`, `ENUMERATED_t`, `REAL_t`)
     by default, instead of using the native machine's data types (long, double).
 
+-fcompound-names-all
+:   Prefix all generated source filenames with the module name.
+
+-fcase-insensitive-filenames
+:   Ensure generated source file names are unique in case-insensitive
+    file systems. Use with -fcompound-names.
+
 ## Codecs Generation Options
 
 -no-gen-BER

@@ -825,7 +825,96 @@ asn1cnst_range_t *
 asn1constraint_compute_PER_range(const char *dbg_name, asn1p_expr_type_e expr_type, const asn1p_constraint_t *ct, enum asn1p_constraint_type_e requested_ct_type, const asn1cnst_range_t *minmax, int *exmet, enum cpr_flags cpr_flags) {
     if(0) return asn1constraint_compute_constraint_range(dbg_name, expr_type, ct, requested_ct_type, minmax, exmet, cpr_flags | CPR_strict_PER_visibility);
     /* Due to peculiarities of PER constraint handling, we don't enable strict PER visibility upfront here. */
-    return asn1constraint_compute_constraint_range(dbg_name, expr_type, ct, requested_ct_type, minmax, exmet, cpr_flags);
+
+    //
+    // If this is a PER-visible size constraint for a type that it may apply to,
+    // remove everything after the extension marker for purposes of calculating
+    // the range for PER encoding.
+    //
+    // See:
+    //
+    // ITU-T Rec. X.691 (02/2021);
+    // "PER-visible constraints", sec 10.39 says:
+    //
+    //     "Subject to the above, all size constraints are PER-visible."
+    //
+    // However, this is a little too general since the following sections on
+    // encoding specific types with size constraints state that extensions to
+    // PER-visible size constraints are not used in calculating ranges and
+    // length determinants for PER encodings.  i.e. Size EXTENSIONS are
+    // effectively NOT PER-visible.
+    //
+    // "Encoding the bitstring type", sec 16.6 says:
+    //
+    //     "If the type is extensible for PER encodings (see 10.3.9), then a
+    //     bit-field consisting of a single bit shall be added to the
+    //     field-list. The bit shall be set to 1 if the length of this encoding
+    //     is not within the range of the extension root, and zero otherwise. In
+    //     the former case, 16.11 shall be invoked to add the length as a
+    //     semi-constrained whole number to the field-list, followed by the
+    //     bitstring value. In the latter case the length and value shall be
+    //     encoded as if no extension is present in the constraint."
+    //
+    // In other words:
+    //   * The range of the extension root must be known.
+    //   * Any extensions added to the size constraint shouldn't be used to
+    //     calculate that range, and
+    //   * If the size of a value is outside the extension root then the range
+    //     isn't used and the length determinant is calculated as if there were
+    //     no constraint.
+    //
+    // See also X.691:
+    //
+    // Sec. 17.6 (Encoding the octetstring type)
+    // Sec. 20.4 (Encoding the sequence-of type)
+    // Sec. 30.4 (Encoding the restricted character string types)
+    //
+    // which have similar language, and:
+    //
+    // X.691 sec 22.2 (Encoding the set-of types)
+    //
+    // which says that set-of types are encoded the same as sequence-of types.
+    //
+    // See also: ITU-T Rec. X.680 (02/2021), 51.5.2 which specifies that size
+    // constraints can only be applied to the following types:
+    //   * bit string
+    //   * octet string
+    //   * character string
+    //   * set-of
+    //   * sequence-of
+    //
+    // And: X.691 10.3.7: only known multiplier char types have PER visible
+    // constraints.
+    //
+    const int size_constraint_can_apply = (
+        expr_type == ASN_BASIC_BIT_STRING
+        || expr_type == ASN_BASIC_OCTET_STRING
+        || (expr_type & ASN_STRING_KM_MASK) != 0
+        || expr_type == ASN_CONSTR_SET_OF
+        || expr_type == ASN_CONSTR_SEQUENCE_OF);
+
+    asn1cnst_range_t *range;
+
+    if (ct && size_constraint_can_apply && requested_ct_type == ACT_CT_SIZE) {
+
+        // Clone the constraint locally to do this, so computations for other
+        // encodings using it aren't affected
+        asn1p_constraint_t *ct_no_size_extensions
+        = asn1p_constraint_clone((asn1p_constraint_t *)ct); // Cast to non-const
+
+        asn1constraint_remove_after_extension_marker(ct_no_size_extensions);
+
+        range = asn1constraint_compute_constraint_range(dbg_name, expr_type,
+           ct_no_size_extensions, requested_ct_type, minmax, exmet, cpr_flags);
+
+        asn1p_constraint_free(ct_no_size_extensions);
+    } else {
+        // The normal case: not a size constraint
+        range = asn1constraint_compute_constraint_range(dbg_name, expr_type, ct,
+           requested_ct_type, minmax, exmet, cpr_flags);
+    }
+
+    return range;
 }
 
 static asn1cnst_range_t *

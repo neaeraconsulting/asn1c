@@ -10,7 +10,7 @@
 \defaultfontfeatures{Mapping=tex-text}
 \setmainfont{PT Sans}
 \setsansfont{PT Sans}
-\setmonofont{Consolas}
+\IfFontExistsTF{Consolas}{\setmonofont{Consolas}}{\setmonofont{inconsolata}}
 
 \usepackage{fancyhdr}
 \usepackage{fancyref}
@@ -29,10 +29,9 @@
 \setstretch{1.1}
 
 % Courier 10 Pitch
-\def\courierFont{Courier10 BT WGL4}
-%\def\courierFont{Consolas}
-\setmonofont[Scale=1.05]{\courierFont}
-\setmathfont[Scale=1.05]{Cambria Math}
+\IfFontExistsTF{Courier10 BT WGL4}{\def\courierFont{Courier10 BT WGL4}}{\def\courierFont{Courier Bold}}
+\setmonofont[OpticalSize=10,Scale=1.05]{\courierFont}
+\IfFontExistsTF{Cambria Math}{\setmathfont[Scale=1.05]{Cambria Math}}{\setmathfont[Scale=1.05]{PT Sans}}
 
 \makeatletter
 
@@ -550,7 +549,9 @@ manually. }\\
 may produce a shorter executable.}\\
 {\ttfamily -fno-include-deps} & {\small Do not generate the courtesy \#include lines for non-critical dependencies.}\\
 {\ttfamily -funnamed-unions} & {\small Enable  unnamed  unions in the definitions of target language's structures.}\\
-{\ttfamily -fwide-types} & {\small Use the wide integer types (INTEGER\_t, REAL\_t) instead of machine's native data types (long, double). }\\\\
+{\ttfamily -fwide-types} & {\small Use the wide integer types (INTEGER\_t, REAL\_t) instead of machine's native data types (long, double). }\\
+{\ttfamily -fcompound-names-all} & {\small Prefix all generated source filenames with the module name.}\\
+{\ttfamily -fcase-insensitive-filenames} & {\small Ensure generated source file names are unique in case-insensitive file systems. Use with -fcompound-names.}\\\\
 \textbf{Codecs Generation Options} & \textbf{Description}\\
 \midrule
 {\ttfamily -no-gen-BER} & {\small Do not generate the Basic Encoding Rules (BER, X.690) support code.}\\

@@ -116,9 +116,15 @@ main(int ac, char **av) {
                 asn1_compiler_flags |= A1C_ALL_DEFS_GLOBAL;
             } else if(strcmp(optarg, "bless-SIZE") == 0) {
                 asn1_fixer_flags |= A1F_EXTENDED_SizeConstraint;
+            } else if(strcmp(optarg, "compound-names-all") == 0) {
+                asn1_compiler_flags |= A1C_COMPOUND_NAMES;
+                asn1_fixer_flags |= A1F_COMPOUND_NAMES;
+                asn1_fixer_flags |= A1F_COMPOUND_NAMES_ALL;
             } else if(strcmp(optarg, "compound-names") == 0) {
                 asn1_compiler_flags |= A1C_COMPOUND_NAMES;
                 asn1_fixer_flags |= A1F_COMPOUND_NAMES;
+            } else if(strcmp(optarg, "case-insensitive-filenames") == 0) {
+                asn1_fixer_flags |= A1F_CASE_INSENSITIVE_FILENAMES;
             } else if(strcmp(optarg, "indirect-choice") == 0) {
                 asn1_compiler_flags |= A1C_INDIRECT_CHOICE;
             } else if(strncmp(optarg, "known-extern-type=", 18) == 0) {
@@ -593,6 +599,9 @@ usage(const char *av0) {
 "  -funnamed-unions      Enable unnamed unions in structures\n"
 "  -fwide-types          Use INTEGER_t instead of \"long\" by default, etc.\n"
 "  -fprefix=<prefix>     Add the specified prefix to generated types\n"
+"  -fcompound-names-all  Prefix all generated source filenames with the module name\n"
+"  -fcase-insensitive-filenames   Ensure generated source file names are unique in case-insensitive\n"
+"                                 file systems. Use with -fcompound-names.\n"
 "\n"
 
 "  -no-gen-BER           Do not generate the Basic Encoding Rules (BER, X.690) support code\n"
