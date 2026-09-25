@@ -14,7 +14,15 @@ enum asn1f_flags {
 	A1F_NOFLAGS,
 	A1F_DEBUG			= 0x01,	/* Print debugging output */
 	A1F_EXTENDED_SizeConstraint	= 0x02,	/* Enable constraint gen code */
-	A1F_COMPOUND_NAMES		= 0x04  /* A1C_COMPOUND_NAMES  */
+	A1F_COMPOUND_NAMES		= 0x04,  /* A1C_COMPOUND_NAMES  */
+
+	/* Create compound file names for name clashes involving only case
+	 * differences, use with A1C_COMPOUND_NAMES */
+	A1F_CASE_INSENSITIVE_FILENAMES	= 0x08,
+
+	/* Create compound file names for all PDUs regardless if there is a name
+	 * clash within the input asn1 files */
+	A1F_COMPOUND_NAMES_ALL	= 0x10
 };
 
 /*

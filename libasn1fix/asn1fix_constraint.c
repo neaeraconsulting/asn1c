@@ -232,6 +232,32 @@ asn1constraint_resolve(arg_t *arg, asn1p_constraint_t *ct, asn1p_expr_type_e ety
     return rvalue;
 }
 
+void
+asn1constraint_remove_after_extension_marker(asn1p_constraint_t* ct) {
+    unsigned int i;
+
+    if(!ct) return;
+
+    for(i = 0; i < ct->el_count; i++) {
+        if(ct->elements[i]->type == ACT_EL_EXT)
+            break;
+        asn1constraint_remove_after_extension_marker(ct->elements[i]);
+    }
+
+    /* Keep the extensibility mark */
+    i++;
+
+    /* Remove elements after the extensibility mark. */
+    for(; i < ct->el_count; ct->el_count--) {
+        asn1p_constraint_t *rm = ct->elements[ct->el_count - 1];
+        asn1p_constraint_free(rm);
+    }
+
+    if(i < ct->el_size)
+        ct->elements[i] = 0;
+
+}
+
 static void
 _remove_extensions(arg_t *arg, asn1p_constraint_t *ct, int forgive_last) {
 	unsigned int i;

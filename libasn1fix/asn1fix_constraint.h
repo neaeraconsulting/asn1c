@@ -17,4 +17,12 @@ int asn1constraint_resolve(
  */
 int asn1constraint_pullup(arg_t *arg);
 
+/*
+ * Modifies a constraint data structure, removing everything after the extension
+ * marker, but keeping the extension marker.
+ * For use for PER range computation.
+ */
+void
+asn1constraint_remove_after_extension_marker(asn1p_constraint_t* ct);
+
 #endif	/* ASN1FIX_CONSTRAINT_H */

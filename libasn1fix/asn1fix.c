@@ -1,6 +1,13 @@
 #include "asn1fix_internal.h"
 #include "asn1fix.h"
 
+/* For POSIX strcasecmp or MSVC _stricmp function */
+#ifdef _WIN32
+#define strcasecmp _stricmp
+#else
+#include <strings.h>
+#endif
+
 /* Print everything to stderr */
 static void _default_error_logger(int _severity, const char *fmt, ...);
 
@@ -73,6 +80,22 @@ asn1f_process(asn1p_t *asn, enum asn1f_flags flags,
 				"Allow the same symbol name defined in two different modules");
 		}
 	}
+
+    if(flags & A1F_CASE_INSENSITIVE_FILENAMES) {
+        arg.flags |= A1F_CASE_INSENSITIVE_FILENAMES;
+        flags &= ~A1F_CASE_INSENSITIVE_FILENAMES;
+        if(arg.debug) {
+            arg.debug(-1, "Case insensitive filenames");
+        }
+    }
+
+    if(flags & A1F_COMPOUND_NAMES_ALL) {
+        arg.flags |= A1F_COMPOUND_NAMES_ALL;
+        flags &= ~A1F_COMPOUND_NAMES_ALL;
+        if(arg.debug) {
+            arg.debug(-1, "Use compound names for all types");
+        }
+    }
 
 	a1f_replace_me_with_proper_interface_arg = arg;
 
@@ -338,10 +361,16 @@ phase_1_1(arg_t *arg, int prm2) {
 		return 0;	/* Already done! */
 	}
 
-	/* Check whether this type is a duplicate */
 	if(!expr->lhs_params) {
-		ret = asn1f_check_duplicate(arg);
-		RET2RVAL(ret, rvalue);
+	    if (arg->flags & A1F_COMPOUND_NAMES_ALL) {
+	        /* -fcompound-names-all is set: Mark all type references as clashing
+	         * to qualify all types with module */
+	        arg->expr->_mark |= TM_NAMECLASH;
+	    } else {
+	        /* Check whether this type is a duplicate */
+	        ret = asn1f_check_duplicate(arg);
+	        RET2RVAL(ret, rvalue);
+	    }
 	}
 
 	DEBUG("=== Now processing \"%s\" (%d/0x%x) at line %d ===",
@@ -509,6 +538,40 @@ asn1f_check_constraints(arg_t *arg) {
 	return rvalue;
 }
 
+/*
+ * String comparison function that can distinguish an ASN.1 type reference
+ * (initial capital letter) from an ASN.1 value reference (initial lower case
+ * letter), and that treats type references as equal regardless of case.
+ */
+static int
+asn1f_compare_typerefs_case_insensitive(const void *key1, const void *key2) {
+
+    /* Compare the first character */
+    const int compare_first_char = strncmp(key1, key2, 1);
+    const unsigned int len1 = strlen(key1);
+    const unsigned int len2 = strlen(key2);
+    if (compare_first_char != 0) {
+        return compare_first_char;
+    }
+
+    /* If either string only has one or fewer chars we are done */
+    if (len1 <= 1 || len2 <= 1) {
+        return compare_first_char;
+    }
+
+    /* First character is the same */
+    const char first_char = ((const char *)key1)[0];
+
+    /* Both strings have at least 2 chars, compare the rest after the first */
+    if (isupper(first_char)) {
+        // Case-insensitive comparison for type reference
+        return strcasecmp(key1 + 1, key2 + 1);
+    }
+
+    /* Normal comparison for value reference */
+    return strcmp(key1 + 1, key2 + 1);
+}
+
 static int
 asn1f_check_duplicate(arg_t *arg) {
 	arg_t tmparg = *arg;
@@ -538,9 +601,18 @@ asn1f_check_duplicate(arg_t *arg) {
 
 			if(tmparg.expr == arg->expr) break;
 
-			if(strcmp(tmparg.expr->Identifier,
-				  arg->expr->Identifier))
-				continue;
+		    if (arg->flags & A1F_CASE_INSENSITIVE_FILENAMES) {
+		        /* Consider type references as clashing with case-insensitive
+		         * comparison */
+		        if(asn1f_compare_typerefs_case_insensitive(tmparg.expr->Identifier,
+		            arg->expr->Identifier))
+		            continue;
+		    } else {
+		        /* Normal case-sensitive comparison */
+		        if(strcmp(tmparg.expr->Identifier,
+		            arg->expr->Identifier))
+		            continue;
+		    }
 
 			/* resolve clash of Identifier in different modules */
 			int oid_exist = (tmparg.expr->module->module_oid && arg->expr->module->module_oid);
@@ -560,8 +632,8 @@ asn1f_check_duplicate(arg_t *arg) {
 			"ASN.1 expression \"%s\" at line %d of module %s\n"
 			"clashes with expression \"%s\" at line %d of module %s"
 			"%s%s%s.\n"
-			"Rename or remove either instance "
-				"to resolve the conflict",
+			"Rename or remove either instance, or use the '-fcompound-names' "
+				"option, to resolve the conflict",
 				arg->expr->Identifier,
 				arg->expr->_lineno,
 				arg->mod->ModuleName,
