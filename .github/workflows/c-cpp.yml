@@ -4,7 +4,10 @@ on:
   push:
     branches: [ vlm_master ]
   pull_request:
-    branches: [ vlm_master ]
+    branches:
+      - vlm_master
+      - develop
+      - master
 
 jobs:
   build:
