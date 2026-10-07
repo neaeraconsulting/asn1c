@@ -68,9 +68,7 @@ NativeEnumerated_encode_jer(const asn_TYPE_descriptor_t *td,
 
     el = INTEGER_map_value2enum(specs, *native);
     if(el) {
-        er.encoded =
-            asn__format_to_callback(cb, app_key, "\"%s\"", el->enum_name);
-        if(er.encoded < 0) ASN__ENCODE_FAILED;
+        ASN__CALLBACK3("\"", 1, el->enum_name, el->enum_len, "\"", 1);
         ASN__ENCODED_OK(er);
     } else {
         ASN_DEBUG(
@@ -78,4 +76,6 @@ NativeEnumerated_encode_jer(const asn_TYPE_descriptor_t *td,
             "unknown value of ENUMERATED type");
         ASN__ENCODE_FAILED;
     }
+cb_failed:
+    ASN__ENCODE_FAILED;
 }

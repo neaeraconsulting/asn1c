@@ -106,12 +106,11 @@ BIT_STRING_encode_jer(const asn_TYPE_descriptor_t *td,
         } else {
             ASN__CALLBACK("\"length\":", 9);
         }
-        int wr = snprintf(scratch, sizeof(scratch), "%lu",
-                st->size * 8 - (st->bits_unused));
-        if(wr < 0 || (size_t)wr >= sizeof(scratch)) {
-            ASN__ENCODE_FAILED;
-        }
-        ASN__CALLBACK(scratch, wr);
+        char len_buf[ASN__FORMAT_INT_SIZE];
+        size_t len_size;
+        const char *len_text = asn__format_umax(
+            len_buf, st->size * 8 - (st->bits_unused), &len_size);
+        ASN__CALLBACK(len_text, len_size);
         if (!jmin) {
             ASN__TEXT_INDENT(1, ilevel);
         }

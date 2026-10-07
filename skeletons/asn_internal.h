@@ -34,10 +34,22 @@ extern "C" {
 #define	ASN1C_ENVIRONMENT_VERSION	923	/* Compile-time version */
 int get_asn1c_environment_version(void);	/* Run-time version */
 
+#ifdef	ASN_ARENA
+/* Allocate from the arena in use by the thread, see asn_application.h */
+void *asn__arena_calloc(size_t nmemb, size_t size);
+void *asn__arena_malloc(size_t size);
+void *asn__arena_realloc(void *oldptr, size_t size);
+void asn__arena_free(void *ptr);
+#define	CALLOC(nmemb, size)	asn__arena_calloc(nmemb, size)
+#define	MALLOC(size)		asn__arena_malloc(size)
+#define	REALLOC(oldptr, size)	asn__arena_realloc(oldptr, size)
+#define	FREEMEM(ptr)		asn__arena_free(ptr)
+#else	/* !ASN_ARENA */
 #define	CALLOC(nmemb, size)	calloc(nmemb, size)
 #define	MALLOC(size)		malloc(size)
 #define	REALLOC(oldptr, size)	realloc(oldptr, size)
 #define	FREEMEM(ptr)		free(ptr)
+#endif	/* ASN_ARENA */
 
 #define	asn_debug_indent	0
 #define ASN_DEBUG_INDENT_ADD(i) do{}while(0)
@@ -97,6 +109,28 @@ asn__format_to_callback(
     const char *fmt, ...);
 
 /*
+ * Format an integer as decimal text without going through printf(3).
+ * The text is written at the end of the given buffer, which must hold
+ * ASN__FORMAT_INT_SIZE bytes, and is not 0-terminated.
+ * RETURN VALUES:
+ *  Pointer to the first character; (*len) receives the number of characters.
+ */
+#define ASN__FORMAT_INT_SIZE (3 * sizeof(uintmax_t) + 2)
+char *asn__format_umax(char *buf, uintmax_t value, size_t *len);
+char *asn__format_imax(char *buf, intmax_t value, size_t *len);
+
+/*
+ * Deliver up to three pieces of data to the callback.
+ * Short pieces are joined and delivered in a single invocation.
+ * RETURN VALUES:
+ *  -1: The callback has failed.
+ *   0: All the data got delivered.
+ */
+int asn__callback3(int (*callback)(const void *, size_t, void *key), void *key,
+                   const void *buf1, size_t size1, const void *buf2,
+                   size_t size2, const void *buf3, size_t size3);
+
+/*
  * Invoke the application-supplied callback and fail, if something is wrong.
  */
 #define ASN__E_cbc(buf, size) (cb((buf), (size), app_key) < 0)
@@ -106,22 +140,30 @@ asn__format_to_callback(
         er.encoded += (size);      \
     } while(0)
 #define ASN__CALLBACK(buf, size) ASN__E_CALLBACK(size, ASN__E_cbc(buf, size))
-#define ASN__CALLBACK2(buf1, size1, buf2, size2) \
-    ASN__E_CALLBACK((size1) + (size2),           \
-                    ASN__E_cbc(buf1, size1) || ASN__E_cbc(buf2, size2))
-#define ASN__CALLBACK3(buf1, size1, buf2, size2, buf3, size3)          \
-    ASN__E_CALLBACK((size1) + (size2) + (size3),                       \
-                    ASN__E_cbc(buf1, size1) || ASN__E_cbc(buf2, size2) \
-                        || ASN__E_cbc(buf3, size3))
+#define ASN__CALLBACK2(buf1, size1, buf2, size2)                         \
+    ASN__E_CALLBACK((size1) + (size2),                                   \
+                    asn__callback3(cb, app_key, buf1, size1, buf2, size2, \
+                                   0, 0) < 0)
+#define ASN__CALLBACK3(buf1, size1, buf2, size2, buf3, size3)            \
+    ASN__E_CALLBACK((size1) + (size2) + (size3),                         \
+                    asn__callback3(cb, app_key, buf1, size1, buf2, size2, \
+                                   buf3, size3) < 0)
 
-#define ASN__TEXT_INDENT(nl, level)                                          \
-    do {                                                                     \
-        int tmp_level = (level);                                             \
-        int tmp_nl = ((nl) != 0);                                            \
-        int tmp_i;                                                           \
-        if(tmp_nl) ASN__CALLBACK("\n", 1);                                   \
-        if(tmp_level < 0) tmp_level = 0;                                     \
-        for(tmp_i = 0; tmp_i < tmp_level; tmp_i++) ASN__CALLBACK("    ", 4); \
+/*
+ * Deliver an optional newline and the indentation to the callback.
+ * RETURN VALUES:
+ *  -1: The callback has failed.
+ * >=0: Size of the data that got delivered to the callback.
+ */
+ssize_t asn__text_indent(int (*callback)(const void *, size_t, void *key),
+                         void *key, int nl, int level);
+
+#define ASN__TEXT_INDENT(nl, level)                                   \
+    do {                                                              \
+        ssize_t tmp_indented =                                        \
+            asn__text_indent(cb, app_key, ((nl) != 0), (level));      \
+        if(tmp_indented < 0) goto cb_failed;                          \
+        er.encoded += tmp_indented;                                   \
     } while(0)
 
 #define	_i_INDENT(nl)	do {                        \

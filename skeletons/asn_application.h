@@ -156,6 +156,67 @@ asn_dec_rval_t asn_decode(
 );
 
 
+#ifdef ASN_ARENA
+/*
+ * Arena allocation, available when the codec is compiled with -DASN_ARENA.
+ *
+ * While a thread uses an arena, whatever the codec allocates on that thread
+ * (decoded structures as well as the temporary buffers of the encoders)
+ * is carved out of the arena, and freeing it does nothing. All of it is
+ * released at once by asn_arena_reset(). This suits the applications which
+ * decode a message, look at it or encode it again, and drop it:
+ *
+ *      char buffer[65536];
+ *      asn_arena_t arena;
+ *      asn_arena_init(&arena, buffer, sizeof(buffer));
+ *      asn_arena_use(&arena);
+ *      (decode, check constraints, encode)
+ *      asn_arena_use(0);
+ *      asn_arena_reset(&arena);
+ *
+ * The arena starts with the memory given to asn_arena_init(), which may be
+ * on the stack, and takes more from the heap when that is used up.
+ * RULES:
+ *  - A structure allocated from an arena dies with asn_arena_reset().
+ *    ASN_STRUCT_FREE() is not necessary for it. Calling it is harmless as
+ *    long as the same arena is still in use by the calling thread, and
+ *    is an error after that.
+ *  - The memory allocated before asn_arena_use() is freed as usual,
+ *    whether an arena is in use or not.
+ *  - An arena is used by one thread at a time.
+ *  - The buffer returned by asn_encode_to_new_buffer() never comes from
+ *    an arena and has to be freed by the application, as always.
+ */
+typedef struct asn_arena_s {
+    /* The contents are private to the arena functions. */
+    char *buffer;       /* Memory given to asn_arena_init() */
+    size_t buffer_size;
+    char *next_free;    /* Where the next allocation goes */
+    size_t available;   /* Bytes left after (next_free) */
+    char *last_block;   /* The most recent allocation */
+    struct asn_arena_chunk_s *chunks; /* Memory taken from the heap */
+} asn_arena_t;
+
+/*
+ * Prepare an arena which starts with the given memory.
+ * The (buffer) may be NULL: the arena then takes everything from the heap.
+ */
+void asn_arena_init(asn_arena_t *arena, void *buffer, size_t size);
+
+/*
+ * Make the calling thread allocate from the given arena, or from the heap
+ * if (arena) is NULL. Returns the arena which was in use before.
+ */
+asn_arena_t *asn_arena_use(asn_arena_t *arena);
+
+/*
+ * Release everything allocated from the arena and return to the heap
+ * the memory which the arena has taken from it. The arena is ready
+ * to be used again.
+ */
+void asn_arena_reset(asn_arena_t *arena);
+#endif  /* ASN_ARENA */
+
 /*
  * A callback of this type is called whenever constraint validation fails
  * on some ASN.1 type. See "constraints.h" for more details on constraint

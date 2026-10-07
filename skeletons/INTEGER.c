@@ -126,22 +126,26 @@ INTEGER__dump(const asn_TYPE_descriptor_t *td, const INTEGER_t *st, asn_app_cons
 				return asn__format_to_callback(cb, app_key,
 					"%" ASN_PRIdMAX " (%s)", value, el->enum_name);
 			else if (plainOrXEROrJER == 1)
-				return asn__format_to_callback(cb, app_key,
-					"<%s/>", el->enum_name);
+				return asn__callback3(cb, app_key, "<", 1,
+					el->enum_name, el->enum_len, "/>", 2) < 0
+					? -1 : (ssize_t)el->enum_len + 3;
 			else if (plainOrXEROrJER == 2)
-				return asn__format_to_callback(cb, app_key,
-					"\"%s\"", el->enum_name);
+				return asn__callback3(cb, app_key, "\"", 1,
+					el->enum_name, el->enum_len, "\"", 1) < 0
+					? -1 : (ssize_t)el->enum_len + 2;
 		} else if(plainOrXEROrJER && specs && specs->strict_enumeration) {
 			ASN_DEBUG("ASN.1 forbids dealing with "
 				"unknown value of ENUMERATED type");
 			errno = EPERM;
 			return -1;
 		} else {
-            return asn__format_to_callback(cb, app_key,
-                                           (specs && specs->field_unsigned)
-                                               ? "%" ASN_PRIuMAX
-                                               : "%" ASN_PRIdMAX,
-                                           value);
+            char text_buf[ASN__FORMAT_INT_SIZE];
+            size_t text_len;
+            const char *text =
+                (specs && specs->field_unsigned)
+                    ? asn__format_umax(text_buf, (uintmax_t)value, &text_len)
+                    : asn__format_imax(text_buf, value, &text_len);
+            return (cb(text, text_len, app_key) < 0) ? -1 : (ssize_t)text_len;
         }
 	} else if(plainOrXEROrJER && specs && specs->strict_enumeration) {
 		/*

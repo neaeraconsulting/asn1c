@@ -4,6 +4,7 @@
 #include <asn_application.h>
 #include <asn_system.h>
 #include <INTEGER.h>
+#include <asn_internal.h>
 
 #define CHECK_XER(a,b,c)        check_xer(__LINE__, a, b, c)
 #define CHECK_JER(a,b,c)        check_jer(__LINE__, a, b, c)
@@ -466,6 +467,36 @@ check_strtoimax_span() {
 
 }
 
+/*
+ * The decimal formatter which stands in for snprintf(3) in the encoders.
+ */
+static void
+check_format(void) {
+	static const intmax_t values[] = {
+		0, 1, -1, 9, 10, -9, -10, 99, 100, 12345, -12345,
+		INT32_MAX, INT32_MIN, LONG_MAX, LONG_MIN, INTMAX_MAX, INTMAX_MIN
+	};
+	char buf[ASN__FORMAT_INT_SIZE];
+	char expect[64];
+	const char *text;
+	size_t len;
+	size_t i;
+
+	for(i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
+		snprintf(expect, sizeof(expect), "%" ASN_PRIdMAX, values[i]);
+		text = asn__format_imax(buf, values[i], &len);
+		printf("format %s\n", expect);
+		assert(text >= buf && text + len == buf + sizeof(buf));
+		assert(len == strlen(expect) && memcmp(text, expect, len) == 0);
+
+		snprintf(expect, sizeof(expect), "%" ASN_PRIuMAX,
+		         (uintmax_t)values[i]);
+		text = asn__format_umax(buf, (uintmax_t)values[i], &len);
+		assert(text >= buf && text + len == buf + sizeof(buf));
+		assert(len == strlen(expect) && memcmp(text, expect, len) == 0);
+	}
+}
+
 int
 main() {
 	uint8_t buf1[] = { 1 };
@@ -493,6 +524,8 @@ main() {
 #define	CHECK(buf, val, ret)	check(buf, sizeof(buf), val, ret)
 #define	UCHECK64(buf, val, ret)	check_unsigned_64(buf, sizeof(buf), val, ret)
 #define	CHECK64(buf, val, ret)	check_64(buf, sizeof(buf), val, ret)
+
+	check_format();
 
 	CHECK(buf1, 1, 0);
 	CHECK(buf2, -1, 0);
