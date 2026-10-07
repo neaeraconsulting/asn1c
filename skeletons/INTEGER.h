@@ -40,6 +40,20 @@ ssize_t INTEGER__dump(const asn_TYPE_descriptor_t *td,
                       asn_app_consume_bytes_f *cb,
                       void *app_key, int plainOrXER);
 
+/*
+ * The outcome of INTEGER__decode_xer_value() and INTEGER__decode_jer_value().
+ * These decode the same text as INTEGER_decode_xer() and INTEGER_decode_jer(),
+ * but hand over a decimal number or an enumeration identifier as (value),
+ * without allocating memory for it. Only the form which is not
+ * a single number (the hexadecimal one of XER) is delivered in (st);
+ * its contents are for the caller to free.
+ */
+typedef struct INTEGER__text_value_s {
+    INTEGER_t st;    /* Meaningful if (!has_value) */
+    intmax_t value;  /* Meaningful if (has_value) */
+    int has_value;
+} INTEGER__text_value_t;
+
 #define INTEGER_free ASN__PRIMITIVE_TYPE_free
 
 #if !defined(ASN_DISABLE_PRINT_SUPPORT)
@@ -59,11 +73,18 @@ der_type_encoder_f INTEGER_encode_der;
 #if !defined(ASN_DISABLE_XER_SUPPORT)
 xer_type_decoder_f INTEGER_decode_xer;
 xer_type_encoder_f INTEGER_encode_xer;
+asn_dec_rval_t INTEGER__decode_xer_value(
+    const asn_codec_ctx_t *opt_codec_ctx, const asn_TYPE_descriptor_t *td,
+    INTEGER__text_value_t *result, const char *opt_mname, const void *buf_ptr,
+    size_t size);
 #endif  /* !defined(ASN_DISABLE_XER_SUPPORT) */
 
 #if !defined(ASN_DISABLE_JER_SUPPORT)
 jer_type_decoder_f INTEGER_decode_jer;
 jer_type_encoder_f INTEGER_encode_jer;
+asn_dec_rval_t INTEGER__decode_jer_value(
+    const asn_codec_ctx_t *opt_codec_ctx, const asn_TYPE_descriptor_t *td,
+    INTEGER__text_value_t *result, const void *buf_ptr, size_t size);
 #endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
 
 #if !defined(ASN_DISABLE_OER_SUPPORT)

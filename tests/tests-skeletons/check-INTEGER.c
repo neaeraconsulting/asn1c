@@ -4,6 +4,7 @@
 #include <asn_application.h>
 #include <asn_system.h>
 #include <INTEGER.h>
+#include <NativeInteger.h>
 #include <asn_internal.h>
 
 #define CHECK_XER(a,b,c)        check_xer(__LINE__, a, b, c)
@@ -279,6 +280,58 @@ check_unsigned_64(uint8_t *buf, int size, uint64_t check_u64, int check_ret) {
 	}
 }
 
+/*
+ * The NativeInteger decoders of XER and JER don't build an INTEGER.
+ * Check that they accept, refuse and yield the same as the INTEGER ones,
+ * for a signed and an unsigned type.
+ */
+static void
+check_native_text(int is_jer, const char *data) {
+	int unsigned_;
+
+	for(unsigned_ = 0; unsigned_ < 2; unsigned_++) {
+		struct asn_INTEGER_specifics_s specs;
+		asn_TYPE_descriptor_t int_td = asn_DEF_INTEGER;
+		asn_TYPE_descriptor_t nat_td = asn_DEF_NativeInteger;
+		INTEGER_t *st = 0;
+		long *native = 0;
+		long expect = 0;
+		asn_dec_rval_t int_rc, nat_rc;
+		int expect_ok;
+
+		memset(&specs, 0, sizeof(specs));
+		specs.field_width = sizeof(long);
+		specs.field_unsigned = unsigned_;
+		int_td.specifics = &specs;
+		nat_td.specifics = &specs;
+
+		if(is_jer) {
+			int_rc = jer_decode(0, &int_td, (void *)&st, data, strlen(data));
+			nat_rc = jer_decode(0, &nat_td, (void *)&native, data, strlen(data));
+		} else {
+			int_rc = xer_decode(0, &int_td, (void *)&st, data, strlen(data));
+			nat_rc = xer_decode(0, &nat_td, (void *)&native, data, strlen(data));
+		}
+
+		expect_ok = (int_rc.code == RC_OK)
+			&& (unsigned_ ? asn_INTEGER2ulong(st, (unsigned long *)&expect)
+			              : asn_INTEGER2long(st, &expect)) == 0;
+		if(expect_ok) {
+			assert(nat_rc.code == RC_OK);
+			assert(nat_rc.consumed == int_rc.consumed);
+			assert(native && *native == expect);
+		} else if(int_rc.code == RC_OK) {
+			/* Decoded, but does not fit the native type. */
+			assert(nat_rc.code == RC_FAIL);
+		} else {
+			assert(nat_rc.code == int_rc.code);
+		}
+
+		ASN_STRUCT_FREE(int_td, st);
+		ASN_STRUCT_FREE(nat_td, native);
+	}
+}
+
 static void
 check_xer(int lineno, int tofail, char *xmldata, long orig_value) {
 	INTEGER_t *st = 0;
@@ -287,6 +340,8 @@ check_xer(int lineno, int tofail, char *xmldata, long orig_value) {
 	int ret = -1;
 
 	printf("%03d: [%s] vs %ld: ", lineno, xmldata, orig_value);
+
+	check_native_text(0, xmldata);
 
 	rc = xer_decode(0, &asn_DEF_INTEGER, (void *)&st,
 		xmldata, strlen(xmldata));
@@ -320,6 +375,8 @@ check_jer(int lineno, int tofail, char *jsondata, long orig_value) {
 
 	printf("%03d: [%s] vs %ld: ", lineno, jsondata, orig_value);
     fflush(stdout);
+
+	check_native_text(1, jsondata);
 
 	rc = jer_decode(0, &asn_DEF_INTEGER, (void *)&st,
 		jsondata, strlen(jsondata));

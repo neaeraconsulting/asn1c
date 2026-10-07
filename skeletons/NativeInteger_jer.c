@@ -18,8 +18,7 @@ NativeInteger_decode_jer(const asn_codec_ctx_t *opt_codec_ctx,
     const asn_INTEGER_specifics_t *specs =
         (const asn_INTEGER_specifics_t *)td->specifics;
     asn_dec_rval_t rval;
-    INTEGER_t st;
-    void *st_ptr = (void *)&st;
+    INTEGER__text_value_t text;
     long *native = (long *)*sptr;
 
     if(!native) {
@@ -27,13 +26,25 @@ NativeInteger_decode_jer(const asn_codec_ctx_t *opt_codec_ctx,
         if(!native) ASN__DECODE_FAILED;
     }
 
-    memset(&st, 0, sizeof(st));
-    rval = INTEGER_decode_jer(opt_codec_ctx, td, constraints, &st_ptr, buf_ptr, size);
+    (void)constraints;
+    rval = INTEGER__decode_jer_value(opt_codec_ctx, td, &text, buf_ptr, size);
     if(rval.code == RC_OK) {
         long l;
-        if((specs&&specs->field_unsigned)
-            ? asn_INTEGER2ulong(&st, (unsigned long *)&l) /* sic */
-            : asn_INTEGER2long(&st, &l)) {
+        if(text.has_value
+           && (text.value >= 0 || !(specs && specs->field_unsigned))) {
+            /* A plain number: no need for the INTEGER representation. */
+            if((specs && specs->field_unsigned)
+                   ? ((uintmax_t)text.value > ULONG_MAX)
+                   : (text.value < LONG_MIN || text.value > LONG_MAX)) {
+                rval.code = RC_FAIL;
+                rval.consumed = 0;
+            } else {
+                *native = (long)text.value;
+            }
+        } else if((text.has_value && asn_imax2INTEGER(&text.st, text.value))
+                  || ((specs&&specs->field_unsigned)
+                      ? asn_INTEGER2ulong(&text.st, (unsigned long *)&l) /* sic */
+                      : asn_INTEGER2long(&text.st, &l))) {
             rval.code = RC_FAIL;
             rval.consumed = 0;
         } else {
@@ -47,7 +58,7 @@ NativeInteger_decode_jer(const asn_codec_ctx_t *opt_codec_ctx,
          */
         rval.consumed = 0;
     }
-    ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_INTEGER, &st);
+    ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_INTEGER, &text.st);
     return rval;
 }
 

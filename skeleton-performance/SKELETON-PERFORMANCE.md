@@ -4,7 +4,7 @@ Changes to the runtime skeletons (`skeletons/`) that make conversion between UPE
 XER/JER cheaper. The compiler and the generated code are not affected. The encoded output
 is unchanged.
 
-The changes fall into four groups, plus tests.
+The changes fall into five groups, plus tests.
 
 ## 1. Integer formatting without `snprintf`
 
@@ -71,10 +71,27 @@ Rules:
 - Memory allocated before `asn_arena_use()` is freed as usual.
 - An arena is used by one thread at a time.
 
+## 5. NativeInteger XER and JER decoding without a temporary `INTEGER_t`
+
+- **`INTEGER_xer.c`, `INTEGER_jer.c`**: the text parsers are split from the conversion to
+  `INTEGER_t` (`INTEGER__xer_body_parse`, `INTEGER__jer_body_parse`). New entry points
+  `INTEGER__decode_xer_value` and `INTEGER__decode_jer_value` return a decimal number or an
+  enumeration identifier as an `intmax_t`, with no allocation. `INTEGER_decode_xer` and
+  `INTEGER_decode_jer` behave as before.
+- **`INTEGER.h`**: declares the two entry points and their result type,
+  `INTEGER__text_value_t`.
+- **`NativeInteger_xer.c`, `NativeInteger_jer.c`**: decode through the new entry points and
+  store the number directly. Previously each integer and each enumerated value cost two
+  malloc/free pairs.
+- The hexadecimal form of XER, and a negative number given for an unsigned type, still go
+  through an `INTEGER_t`, so that they give the same result as before.
+
 ## Tests (`tests/tests-skeletons/`)
 
 - **`check-INTEGER.c`**: compares the formatter with `snprintf` for edge values (0, ±1,
-  `LONG_MIN`, `INTMAX_MIN`, and so on).
+  `LONG_MIN`, `INTMAX_MIN`, and so on). For every existing XER and JER text case, it also
+  checks that NativeInteger, signed and unsigned, accepts, refuses and yields the same as
+  the INTEGER decoder.
 - **`check-UPER-INTEGER.c`**: for every existing case, checks that NativeInteger produces
   the same bits as the INTEGER codec and reads them back. It covers in-range, extension,
   refused, unconstrained, semi-constrained and truncated input.
@@ -89,25 +106,68 @@ J2735 2024 `MessageFrame` messages (small BSM, PSM, SPAT, MAP), converted with
 `convert_bytes` of `j2735-ffm-java`. CPU cycles per call (`perf stat`, user mode, clang 18
 `-O3`, WSL2), relative to the skeletons before these changes:
 
-| Direction | Groups 1-3 | Groups 1-3 + arena |
+| Direction | Without arena | With arena |
 |---|---|---|
-| UPER to JER | -32% to -40% | -47% to -53% |
-| UPER to XER | -30% to -37% | -41% to -50% |
-| JER to UPER | -9% to -10% | -15% to -18% |
-| XER to UPER | -3% to -5% | -11% to -14% |
+| UPER to JER | -30% to -39% | -45% to -53% |
+| UPER to XER | -27% to -34% | -41% to -49% |
+| JER to UPER | -20% to -22% | -24% to -28% |
+| XER to UPER | -7% to -11% | -18% to -22% |
 
-Heap allocations per message without the arena:
+The chart shows each message before and after, one panel per direction: the original
+skeletons at 100%, and the updated ones with everything above, the arena included. The
+line under each message gives the cycles per call.
 
-| Message | Decode, UPER input | Encode, UPER output |
-|---|---|---|
-| Small BSM | 47 to 11 | 22 to 4 |
-| SPAT | 1968 to 1084 | 455 to 13 |
-| MAP | 2710 to 1360 | 688 to 13 |
+![CPU per conversion](cpu-per-conversion.svg)
+
+The charts are drawn by `make-charts.py`, which holds the numbers.
+
+### Heap allocations
+
+Each time the codec needs a piece of memory (for a decoded structure, a list item, a
+string, a temporary buffer) it asks the system allocator for it with `malloc`, and gives it
+back with `free` when the message is done. The count below is how many times that happens
+during one `convert_bytes` call.
+
+Fewer is better, for three reasons:
+
+- **Time.** Every request and every release is work that has nothing to do with the
+  message itself. In the original profile it was 11% of the call for a small BSM and 26%
+  for a SPAT.
+- **Threads.** The allocator is shared by all the threads of the process, so threads that
+  allocate at the same time get in each other's way. A conversion that does not allocate
+  cannot be slowed down by the others like that.
+- **Predictability.** Thousands of small blocks requested and released in a different order
+  each time leave the heap fragmented, and the time a request takes varies. With no
+  requests, each conversion costs the same.
+
+The updated skeletons make between a fifth and a half as many requests as the original
+ones, mostly
+because an integer no longer takes a temporary buffer on its way in or out. With the arena
+the count drops to zero: the codec takes all its memory from one 64 kB block that
+`convert_bytes` keeps on its stack, and drops it in one step at the end. The two largest
+messages, MAP and TIM, need more than that block and take one extra 64 kB piece from the
+heap, so they make one request where they used to make two to three thousand. A larger
+block would bring them to zero as well.
+
+Heap allocations in one `convert_bytes` call, original → updated → updated with arena:
+
+| Message | UPER to JER or XER | JER to UPER | XER to UPER |
+|---|---|---|---|
+| Small BSM | 47 → 11 → 0 | 65 → 11 → 0 | 72 → 18 → 0 |
+| PSM | 154 → 68 → 0 | 203 → 74 → 0 | 212 → 83 → 0 |
+| SPAT | 1968 → 1084 → 0 | 2262 → 936 → 0 | 2429 → 1103 → 0 |
+| MAP | 2710 → 1360 → 1 | 3107 → 1082 → 1 | 3269 → 1244 → 1 |
+
+Of the 13 messages measured, 11 make no allocation at all with the arena, in every
+direction. The chart shows the original skeletons against the final state, with every
+update and the arena: the second bar of each pair is a sliver, drawn only so that it can
+be seen, and the number above it is the count.
+
+![Heap allocations per conversion](heap-allocations.svg)
 
 ## Not done
 
 - The XML and JSON tokenizers (`pxml_parse`, `pjson_parse`), which are where most of the
   remaining text-to-UPER time is.
-- `NativeInteger_decode_xer` and `_jer` still decode through a temporary `INTEGER_t`.
 - The arena has not been built for Windows/MinGW, and the 32-bit test variants were not
   run.
