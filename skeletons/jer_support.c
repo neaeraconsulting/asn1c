@@ -73,6 +73,33 @@ static const int _charclass[256] = {
     TOKEN_CB_CALL(_type##_FINAL_CHUNK_TYPE, _ns, _current_too, 1)
 
 /*
+ * Most of the input is characters which change nothing in the state they
+ * are met in. Run over them in a tight loop instead of going through
+ * the state machine for each one.
+ */
+#define SKIP_WHILE(cond)                       \
+    do {                                       \
+        while(cond) {                          \
+            if(++p == end) goto flush;         \
+            C = *(const unsigned char *)p;     \
+        }                                      \
+    } while(0)
+
+/* The characters which mean something outside of a string, in ST_TEXT */
+static int
+_text_special(int c) {
+    switch(c) {
+    case CQUOTE: case '\\':
+    case LCBRAC: case RCBRAC:
+    case LSBRAC: case RSBRAC:
+    case CCOMMA:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+/*
  * Parser itself
  */
 ssize_t
@@ -95,6 +122,16 @@ pjson_parse(int *stateContext, const void *jsonbuf, size_t size,
              * Initial state: we're in the middle of some text,
              * or just have started.
              */
+
+            /* Anything else than these only clears the escape. */
+            if(in_string ? (C != CQUOTE && C != '\\') : !_text_special(C)) {
+                escaped = 0;
+                if(in_string) {
+                    SKIP_WHILE(C != CQUOTE && C != '\\');
+                } else {
+                    SKIP_WHILE(!_text_special(C));
+                }
+            }
 
             if(C == CQUOTE && !escaped) { /* " */
                 in_string = !in_string;
@@ -137,6 +174,7 @@ pjson_parse(int *stateContext, const void *jsonbuf, size_t size,
             break;
 
         case ST_KEY: /* Looking for key */
+            SKIP_WHILE(C != RCBRAC && C != CQUOTE);
             switch(C) {
             case RCBRAC: /* Empty object { } */
                 TOKEN_CB_FINAL(PJSON_VALUE, ST_TEXT, 1);
@@ -150,6 +188,7 @@ pjson_parse(int *stateContext, const void *jsonbuf, size_t size,
             break;
 
         case ST_KEY_BODY: /* Inside key */
+            SKIP_WHILE(C != CQUOTE);
             switch(C) {
             case CQUOTE: /* Key end */
                 TOKEN_CB_FINAL(PJSON_KEY, ST_COLON, 1);
@@ -160,6 +199,7 @@ pjson_parse(int *stateContext, const void *jsonbuf, size_t size,
             break;
 
 		case ST_COLON: /* Looking for colon */
+			SKIP_WHILE(C != CCOLON);
 			switch(C) {
 			case CCOLON:
                 state = ST_VALUE;
@@ -191,6 +231,7 @@ pjson_parse(int *stateContext, const void *jsonbuf, size_t size,
 			break;
 
         case ST_VALUE_BODY: /* Inside value */
+            SKIP_WHILE(C != RCBRAC && C != CCOMMA);
             switch(C)  {
             case RCBRAC:
                 TOKEN_CB_FINAL(PJSON_VALUE, ST_END, 0);
@@ -229,6 +270,7 @@ pjson_parse(int *stateContext, const void *jsonbuf, size_t size,
             break;
 
         case ST_ARRAY_VALUE_BODY: /* Inside array value */
+            SKIP_WHILE(C != RSBRAC && C != CCOMMA);
             switch(C)  {
             case RSBRAC:
                 include = !(p - chunk_start);
@@ -248,6 +290,7 @@ pjson_parse(int *stateContext, const void *jsonbuf, size_t size,
             break;
 
         case ST_END: /* End */
+            SKIP_WHILE(C != RCBRAC);
             switch (C)  {
             case RCBRAC:
                 TOKEN_CB_FINAL(PJSON_VALUE, ST_TEXT, 1);
@@ -259,6 +302,7 @@ pjson_parse(int *stateContext, const void *jsonbuf, size_t size,
         } /* switch(*ptr) */
     }     /* for() */
 
+flush:
     /*
      * Flush the partially processed chunk, state permitting.
      */

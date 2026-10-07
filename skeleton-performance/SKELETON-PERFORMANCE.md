@@ -4,7 +4,7 @@ Changes to the runtime skeletons (`skeletons/`) that make conversion between UPE
 XER/JER cheaper. The compiler and the generated code are not affected. The encoded output
 is unchanged.
 
-The changes fall into five groups, plus tests.
+The changes fall into six groups, plus tests.
 
 ## 1. Integer formatting without `snprintf`
 
@@ -86,6 +86,21 @@ Rules:
 - The hexadecimal form of XER, and a negative number given for an unsigned type, still go
   through an `INTEGER_t`, so that they give the same result as before.
 
+## 6. XML and JSON tokenizers skip over plain characters
+
+- **`xer_support.c`** (`pxml_parse`), **`jer_support.c`** (`pjson_parse`): both went through
+  their state machine once for every character of the input. Most characters change
+  nothing in the state they are met in (the text between two tags, the letters of a tag
+  or a key, the digits of a value), so each state now runs over those in a tight loop and
+  enters the state machine only for a character that means something there.
+- The tokens, the states and the handling of input that ends in the middle of a token are
+  the same as before. The old and the new tokenizers were compared on the 13 messages and
+  on random text, from every state, for every prefix and with callbacks that stop at
+  different points: 37 million comparisons, no difference.
+- Each tag is still tokenized twice, once by the type that contains it and once by the
+  type it belongs to. That is the structure of the XER and JER decoders and is not
+  changed here.
+
 ## Tests (`tests/tests-skeletons/`)
 
 - **`check-INTEGER.c`**: compares the formatter with `snprintf` for edge values (0, ±1,
@@ -98,7 +113,10 @@ Rules:
 - **`check-arena.c`** (new): alignment, in-place and moving realloc, freeing the last
   block, overflow to the heap, oversized allocations, reset and reuse, and heap pointers
   mixed with arena pointers.
-- **`Makefile.am`**: registers `check-arena` and its 32-bit variant.
+- **`check-tokenizers.c`** (new): the tokens of an XML and two JSON texts with attributes,
+  comments, strings, escapes and nesting, and what the tokenizers consume and report for
+  every prefix of them, against what the tokenizers gave before the change.
+- **`Makefile.am`**: registers `check-arena`, `check-tokenizers` and their 32-bit variants.
 
 ## Measured effect
 
@@ -108,10 +126,10 @@ J2735 2024 `MessageFrame` messages (small BSM, PSM, SPAT, MAP), converted with
 
 | Direction | Without arena | With arena |
 |---|---|---|
-| UPER to JER | -30% to -39% | -45% to -53% |
-| UPER to XER | -27% to -34% | -41% to -49% |
-| JER to UPER | -20% to -22% | -24% to -28% |
-| XER to UPER | -7% to -11% | -18% to -22% |
+| UPER to JER | -32% to -38% | -45% to -53% |
+| UPER to XER | -28% to -34% | -40% to -49% |
+| JER to UPER | -25% to -27% | -32% to -35% |
+| XER to UPER | -15% to -18% | -28% to -33% |
 
 The chart shows each message before and after, one panel per direction: the original
 skeletons at 100%, and the updated ones with everything above, the arena included. The
@@ -167,7 +185,7 @@ be seen, and the number above it is the count.
 
 ## Not done
 
-- The XML and JSON tokenizers (`pxml_parse`, `pjson_parse`), which are where most of the
-  remaining text-to-UPER time is.
+- Each XML tag and JSON key is still tokenized twice (see group 6). Removing that means
+  restructuring the XER and JER decoders.
 - The arena has not been built for Windows/MinGW, and the 32-bit test variants were not
   run.

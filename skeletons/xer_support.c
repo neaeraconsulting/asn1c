@@ -77,6 +77,18 @@ _charclass[256] = {
 	TOKEN_CB_CALL( _type ## _FINAL_CHUNK_TYPE , _ns, _current_too, 1)
 
 /*
+ * Most of the input is characters which change nothing in the state they
+ * are met in. Run over them in a tight loop instead of going through
+ * the state machine for each one.
+ */
+#define	SKIP_WHILE(cond)	do {					\
+		while(cond) {						\
+			if(++p == end) goto flush;			\
+			C = *(const unsigned char *)p;			\
+		}							\
+	} while(0)
+
+/*
  * Parser itself
  */
 ssize_t pxml_parse(int *stateContext, const void *xmlbuf, size_t size, pxml_callback_f *cb, void *key) {
@@ -93,9 +105,9 @@ ssize_t pxml_parse(int *stateContext, const void *xmlbuf, size_t size, pxml_call
 		 * Initial state: we're in the middle of some text,
 		 * or just have started.
 		 */
-		if (C == LANGLE) 
-			/* We're now in the tag, probably */
-			TOKEN_CB(PXML_TEXT, ST_TAG_START, 0);
+		SKIP_WHILE(C != LANGLE);
+		/* We're now in the tag, probably */
+		TOKEN_CB(PXML_TEXT, ST_TAG_START, 0);
 		break;
 	  case ST_TAG_START:
 		if (ALPHA(C) || (C == CSLASH))
@@ -110,6 +122,7 @@ ssize_t pxml_parse(int *stateContext, const void *xmlbuf, size_t size, pxml_call
 			TOKEN_CB(PXML_TEXT, ST_TEXT, 1);/* Flush as data */
 		break;
 	  case ST_TAG_BODY:
+		SKIP_WHILE(C != RANGLE && C != LANGLE && C != CEQUAL);
 		switch(C) {
 		case RANGLE:
 			/* End of the tag */
@@ -205,6 +218,7 @@ ssize_t pxml_parse(int *stateContext, const void *xmlbuf, size_t size, pxml_call
 	  } /* switch(*ptr) */
 	} /* for() */
 
+flush:
 	/*
 	 * Flush the partially processed chunk, state permitting.
 	 */
