@@ -99,7 +99,7 @@ asn__format_to_callback(int (*cb)(const void *, size_t, void *key), void *key,
         va_end(args);
         if(wrote < (ssize_t)buf_size) {
             if(wrote < 0) {
-                if(buf != scratch) FREEMEM(buf);
+                if(buf != scratch) free(buf);
                 return -1;
             }
             break;
@@ -107,14 +107,15 @@ asn__format_to_callback(int (*cb)(const void *, size_t, void *key), void *key,
 
         buf_size <<= 1;
         if(buf == scratch) {
-            buf = MALLOC(buf_size);
+            /* The buffer stays in this function: not from an arena */
+            buf = malloc(buf_size);
             if(!buf) {
               return -1;
             }
         } else {
-            void *p = REALLOC(buf, buf_size);
+            void *p = realloc(buf, buf_size);
             if(!p) {
-                FREEMEM(buf);
+                free(buf);
                 return -1;
             }
             buf = p;
@@ -122,7 +123,7 @@ asn__format_to_callback(int (*cb)(const void *, size_t, void *key), void *key,
     } while(1);
 
     cb_ret = cb(buf, wrote, key);
-    if(buf != scratch) FREEMEM(buf);
+    if(buf != scratch) free(buf);
     if(cb_ret < 0) {
         return -1;
     }
