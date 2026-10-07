@@ -185,7 +185,11 @@ be seen, and the number above it is the count.
 
 ## Not done
 
-- Each XML tag and JSON key is still tokenized twice (see group 6). Removing that means
-  restructuring the XER and JER decoders.
+- Each opening XML tag is still tokenized twice (see group 6). Keeping the last token so
+  that the second request for it is answered without parsing was tried and measured, and
+  dropped: after group 6 a short tag costs about as much to parse again as to look up.
+  Instructions per call went down by 1% for XER and up by 10% for JER, where few tokens
+  are asked for twice. Removing the repetition for good means restructuring the XER and
+  JER decoders so that a type hands the token it has read to its member.
 - The arena has not been built for Windows/MinGW, and the 32-bit test variants were not
   run.
