@@ -33,8 +33,6 @@ static enum jer_pbd_rval
 INTEGER__jer_body_parse(const asn_TYPE_descriptor_t *td,
                         const void *chunk_buf, size_t chunk_size,
                         intmax_t *value_r) {
-    const asn_INTEGER_specifics_t *specs =
-        (const asn_INTEGER_specifics_t *)td->specifics;
     intmax_t dec_value;
     const char *lp;
     const char *lstart = (const char *)chunk_buf;
@@ -134,18 +132,11 @@ INTEGER__jer_body_parse(const asn_TYPE_descriptor_t *td,
         /* The last symbol encountered was a digit. */
         switch(asn_strtoimax_lim(dec_value_start, &dec_value_end, &dec_value)) {
         case ASN_STRTOX_OK:
-            if(specs && specs->field_unsigned && (uintmax_t) dec_value <= ULONG_MAX) {
-                break;
-            } else if(dec_value >= LONG_MIN && dec_value <= LONG_MAX) {
-                break;
-            } else {
-                /*
-                 * We model INTEGER on long for JER,
-                 * to avoid rewriting all the tests at once.
-                 */
-                ASN_DEBUG("INTEGER exceeds long range");
-            }
-            /* Fall through */
+            /*
+             * Anything that fits intmax_t is fine for INTEGER.
+             * The native types check the range of long by themselves.
+             */
+            break;
         case ASN_STRTOX_ERROR_RANGE:
             ASN_DEBUG("INTEGER decode %s hit range limit", td->name);
             return JPBD_DECODER_LIMIT;

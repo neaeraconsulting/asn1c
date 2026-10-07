@@ -17,6 +17,7 @@ static abuf *emit_range_comparison_code(asn1cnst_range_t *range,
                                           asn1c_integer_t natural_start,
                                           asn1c_integer_t natural_stop);
 static int native_long_sign(arg_t *arg, asn1cnst_range_t *r);	/* -1, 0, 1 */
+static int wide_value_sign(arg_t *arg, asn1cnst_range_t *r);	/* -1, 0, 1 */
 
 static int
 ulong_optimization(arg_t *arg, asn1p_expr_type_e etype, asn1cnst_range_t *r_size,
@@ -115,6 +116,11 @@ asn1c_emit_constraint_checking_code(arg_t *arg) {
 						value_unsigned = 1;
 						OUT("unsigned long value;\n");
 					}
+				} else if(wide_value_sign(arg, r_value) > 0) {
+					value_unsigned = 1;
+					OUT("uintmax_t value;\n");
+				} else if(wide_value_sign(arg, r_value) < 0) {
+					OUT("intmax_t value;\n");
 				} else {
 					OUT("long value;\n");
 				}
@@ -688,8 +694,20 @@ emit_value_determination_code(arg_t *arg, asn1p_expr_type_e etype, asn1cnst_rang
 				OUT("return -1;\n");
 				INDENT(-1);
 				OUT("}\n");
+			} else if(wide_value_sign(arg, r_value) > 0) {
+				/* Beyond intmax_t: a negative value is not for umax */
+				OUT("if((st->buf && st->size && (st->buf[0] & 0x80))\n");
+				OUT("   || asn_INTEGER2umax(st, &value)) {\n");
+				INDENT(+1);
+				OUT("ASN__CTFAIL(app_key, td, sptr,\n");
+				OUT("\t\"%%s: value out of range (%%s:%%d)\",\n");
+				OUT("\ttd->name, __FILE__, __LINE__);\n");
+				OUT("return -1;\n");
+				INDENT(-1);
+				OUT("}\n");
 			} else {
-				OUT("if(asn_INTEGER2long(st, &value)) {\n");
+				/* Not a long: it may be narrower than the INTEGER */
+				OUT("if(asn_INTEGER2imax(st, &value)) {\n");
 				INDENT(+1);
 				OUT("ASN__CTFAIL(app_key, td, sptr,\n");
 				OUT("\t\"%%s: value too large (%%s:%%d)\",\n");
@@ -742,6 +760,24 @@ _find_terminal_type(arg_t *arg) {
 	expr = asn1f_find_terminal_type_ex(arg->asn, arg->ns, arg->expr);
 	if(expr) return expr->expr_type;
 	return A1TC_INVALID;
+}
+
+/*
+ * How to examine the value of an integer which is kept as INTEGER_t:
+ *  0: it is not kept as INTEGER_t;
+ * -1: as intmax_t;
+ *  1: as uintmax_t, the range goes beyond intmax_t.
+ */
+static int
+wide_value_sign(arg_t *arg, asn1cnst_range_t *r) {
+	if(asn1c_type_fits_long(arg, arg->expr) != FL_NOTFIT)
+		return 0;
+	if(r->left.type == ARE_VALUE
+	&& r->left.value >= 0
+	&& r->right.type == ARE_VALUE
+	&& r->right.value > (asn1c_integer_t)9223372036854775807LL)
+		return 1;
+	return -1;
 }
 
 static int

@@ -63,6 +63,7 @@ TESTS += check-src/check-92.c
 TESTS += check-src/check-158.-fcompound-names.c
 TESTS += check-src/check-159.c
 TESTS += check-src/check-164.c
+TESTS += check-src/check-166.-fwide-types.c
 
 if TEST_64BIT
 TESTS += check-src/check64-134.-gen-UPER.c

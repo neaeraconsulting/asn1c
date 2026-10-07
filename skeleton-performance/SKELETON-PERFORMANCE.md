@@ -1,10 +1,11 @@
 # Skeleton performance changes
 
 Changes to the runtime skeletons (`skeletons/`) that make conversion between UPER and
-XER/JER cheaper. The compiler and the generated code are not affected. The encoded output
-is unchanged.
+XER/JER cheaper. The encoded output is unchanged. The performance changes do not touch the
+compiler or the generated code; the one change that does is described separately, under
+"Integers wider than `long`".
 
-The changes fall into six groups, plus tests.
+The performance changes fall into six groups, plus tests.
 
 ## 1. Integer formatting without `snprintf`
 
@@ -101,6 +102,44 @@ Rules:
   type it belongs to. That is the structure of the XER and JER decoders and is not
   changed here.
 
+## Integers wider than `long`
+
+Not a performance change. On Windows a `long` is 32 bits, also in a 64-bit build. With
+`-fwide-types` an integer is kept as an `INTEGER_t` and can hold more, but two places still
+passed it through a `long`, so a value above 2^31 (the `Time64` of IEEE 1609.2, for one)
+was refused there. On Linux, where a `long` is 64 bits, nothing changes.
+
+- **`INTEGER_xer.c`, `INTEGER_jer.c`** (skeletons): the text parsers refused a number
+  outside the range of `long`. They now accept whatever fits `intmax_t`. The native types
+  are not affected: `NativeInteger` checks the range of `long` by itself (group 5).
+- **`libasn1compiler/asn1c_constraint.c`** (compiler): the constraint function generated
+  for an integer kept as `INTEGER_t` read the value with `long value` and
+  `asn_INTEGER2long()`. It now uses `intmax_t` and `asn_INTEGER2imax()`, or `uintmax_t` and
+  `asn_INTEGER2umax()` when the range goes beyond `intmax_t` (0..2^64-1); a negative value
+  is refused there. Integers kept in a `long` are generated as before.
+- **`libasn1compiler/asn1c_C.c`** (compiler): the same for the comparison with a DEFAULT
+  value.
+
+This is a change in the generated code, so the sources have to be generated again with the
+rebuilt `asn1c` to get it. Hand-edited copies of `INTEGER_xer.c`, `INTEGER_jer.c` and of
+generated files such as `Time64.c` and `Uint64.c` are then no longer needed.
+
+A number above `INTMAX_MAX` (the upper half of an unsigned 64-bit range) is still refused
+in XER and JER text, as before.
+
+Tests:
+
+- **`tests/tests-asn1c-compiler/166-wide-int-constraint-OK.asn1`** (new) and
+  **`tests/tests-c-compiler/check-src/check-166.-fwide-types.c`** (new): the constraints of
+  `Uint64`, `Time64` and a signed 40-bit type for values on both sides of 2^31, 2^32, 2^63
+  and of their bounds, and `Time64` decoded from XER.
+- **`tests/tests-skeletons/check-INTEGER.c`**: the XER and JER cases beyond 32 bits are
+  expected to decode whatever the size of `long`.
+- Eight expected outputs in `tests/tests-asn1c-compiler/` follow the generated code.
+- Built and run with MinGW gcc 9.2 on Windows (32-bit `long`): `check-166` and
+  `check-INTEGER` pass. With the constraint function as it was generated before, `check-166`
+  fails on the first value above 2^31.
+
 ## Tests (`tests/tests-skeletons/`)
 
 - **`check-INTEGER.c`**: compares the formatter with `snprintf` for edge values (0, ±1,
@@ -191,5 +230,5 @@ be seen, and the number above it is the count.
   Instructions per call went down by 1% for XER and up by 10% for JER, where few tokens
   are asked for twice. Removing the repetition for good means restructuring the XER and
   JER decoders so that a type hands the token it has read to its member.
-- The arena has not been built for Windows/MinGW, and the 32-bit test variants were not
-  run.
+- The arena has not been built for Windows/MinGW, and the 32-bit test variants
+  (`check-32-*`) were not run.
