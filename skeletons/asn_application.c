@@ -93,12 +93,13 @@ dynamic_encoder_cb(const void *data, size_t size, void *keyp) {
                 new_size *= 2;
             } while(new_size <= key->computed_size + size);
 
-            p = REALLOC(key->buffer, new_size);
+            /* The buffer is for the application to free: not from an arena */
+            p = realloc(key->buffer, new_size);
             if(p) {
                 key->buffer = p;
                 key->buffer_size = new_size;
             } else {
-                FREEMEM(key->buffer);
+                free(key->buffer);
                 key->buffer = 0;
                 key->buffer_size = 0;
                 key->computed_size += size;
@@ -194,7 +195,7 @@ asn_encode_to_new_buffer(const asn_codec_ctx_t *opt_codec_ctx,
     asn_encode_to_new_buffer_result_t res;
 
     buf_key.buffer_size = 16;
-    buf_key.buffer = MALLOC(buf_key.buffer_size);
+    buf_key.buffer = malloc(buf_key.buffer_size);
     buf_key.computed_size = 0;
 
     res.result = asn_encode_internal(opt_codec_ctx, syntax, td, sptr,

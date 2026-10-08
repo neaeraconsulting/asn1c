@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 590" width="760" height="590" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+<title id="t">Heap allocations per conversion</title>
+<desc id="d">UPER to JER: BSM 47 → 0, PSM 154 → 0, SPAT 1968 → 0, MAP 2710 → 1; UPER to XER: BSM 47 → 0, PSM 154 → 0, SPAT 1968 → 0, MAP 2710 → 1; JER to UPER: BSM 65 → 0, PSM 203 → 0, SPAT 2262 → 0, MAP 3107 → 1; XER to UPER: BSM 72 → 0, PSM 212 → 0, SPAT 2429 → 0, MAP 3269 → 1</desc>
+<rect width="760" height="590" fill="#fcfcfb"/>
+<text x="16" y="30" font-size="17" font-weight="600" fill="#0b0b0b">Heap allocations per conversion</text>
+<text x="16" y="50" font-size="12.5" fill="#52514e">Allocations per call, as a share of the original skeletons, with every update and the arena. Lower is better.</text>
+<rect x="16" y="64" width="12" height="12" rx="3" fill="#2a78d6"/>
+<text x="34" y="74.5" font-size="12.5" fill="#52514e">Original skeletons</text>
+<rect x="175.0" y="64" width="12" height="12" rx="3" fill="#eb6834"/>
+<text x="193.0" y="74.5" font-size="12.5" fill="#52514e">Updated skeletons</text>
+<text x="16" y="110" font-size="13.5" font-weight="600" fill="#0b0b0b">UPER to JER</text>
+<line x1="56" x2="374" y1="282.0" y2="282.0" stroke="#c3c2b7"/>
+<text x="48" y="286.0" font-size="11.5" fill="#898781" text-anchor="end">0%</text>
+<line x1="56" x2="374" y1="207.0" y2="207.0" stroke="#e1e0d9"/>
+<text x="48" y="211.0" font-size="11.5" fill="#898781" text-anchor="end">50%</text>
+<line x1="56" x2="374" y1="132.0" y2="132.0" stroke="#e1e0d9"/>
+<text x="48" y="136.0" font-size="11.5" fill="#898781" text-anchor="end">100%</text>
+<path d="M68.8,282.0 V136.0 Q68.8,132.0 72.8,132.0 H90.8 Q94.8,132.0 94.8,136.0 V282.0 Z" fill="#2a78d6"/>
+<path d="M96.8,282 V282 Q96.8,280 98.8,280 H120.8 Q122.8,280 122.8,282 V282 Z" fill="#eb6834"/>
+<text x="109.75" y="274.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">0</text>
+<text x="95.75" y="301" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">BSM</text>
+<text x="95.75" y="317" font-size="11.5" fill="#898781" text-anchor="middle">47 → 0</text>
+<path d="M148.2,282.0 V136.0 Q148.2,132.0 152.2,132.0 H170.2 Q174.2,132.0 174.2,136.0 V282.0 Z" fill="#2a78d6"/>
+<path d="M176.2,282 V282 Q176.2,280 178.2,280 H200.2 Q202.2,280 202.2,282 V282 Z" fill="#eb6834"/>
+<text x="189.25" y="274.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">0</text>
+<text x="175.25" y="301" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">PSM</text>
+<text x="175.25" y="317" font-size="11.5" fill="#898781" text-anchor="middle">154 → 0</text>
+<path d="M227.8,282.0 V136.0 Q227.8,132.0 231.8,132.0 H249.8 Q253.8,132.0 253.8,136.0 V282.0 Z" fill="#2a78d6"/>
+<path d="M255.8,282 V282 Q255.8,280 257.8,280 H279.8 Q281.8,280 281.8,282 V282 Z" fill="#eb6834"/>
+<text x="268.75" y="274.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">0</text>
+<text x="254.75" y="301" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">SPAT</text>
+<text x="254.75" y="317" font-size="11.5" fill="#898781" text-anchor="middle">1968 → 0</text>
+<path d="M307.2,282.0 V136.0 Q307.2,132.0 311.2,132.0 H329.2 Q333.2,132.0 333.2,136.0 V282.0 Z" fill="#2a78d6"/>
+<path d="M335.2,282 V282 Q335.2,278 339.2,278 H357.2 Q361.2,278 361.2,282 V282 Z" fill="#eb6834"/>
+<text x="348.25" y="272.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">1</text>
+<text x="334.25" y="301" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">MAP</text>
+<text x="334.25" y="317" font-size="11.5" fill="#898781" text-anchor="middle">2710 → 1</text>
+<text x="378" y="110" font-size="13.5" font-weight="600" fill="#0b0b0b">UPER to XER</text>
+<line x1="418" x2="736" y1="282.0" y2="282.0" stroke="#c3c2b7"/>
+<text x="410" y="286.0" font-size="11.5" fill="#898781" text-anchor="end">0%</text>
+<line x1="418" x2="736" y1="207.0" y2="207.0" stroke="#e1e0d9"/>
+<text x="410" y="211.0" font-size="11.5" fill="#898781" text-anchor="end">50%</text>
+<line x1="418" x2="736" y1="132.0" y2="132.0" stroke="#e1e0d9"/>
+<text x="410" y="136.0" font-size="11.5" fill="#898781" text-anchor="end">100%</text>
+<path d="M430.8,282.0 V136.0 Q430.8,132.0 434.8,132.0 H452.8 Q456.8,132.0 456.8,136.0 V282.0 Z" fill="#2a78d6"/>
+<path d="M458.8,282 V282 Q458.8,280 460.8,280 H482.8 Q484.8,280 484.8,282 V282 Z" fill="#eb6834"/>
+<text x="471.75" y="274.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">0</text>
+<text x="457.75" y="301" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">BSM</text>
+<text x="457.75" y="317" font-size="11.5" fill="#898781" text-anchor="middle">47 → 0</text>
+<path d="M510.2,282.0 V136.0 Q510.2,132.0 514.2,132.0 H532.2 Q536.2,132.0 536.2,136.0 V282.0 Z" fill="#2a78d6"/>
+<path d="M538.2,282 V282 Q538.2,280 540.2,280 H562.2 Q564.2,280 564.2,282 V282 Z" fill="#eb6834"/>
+<text x="551.25" y="274.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">0</text>
+<text x="537.25" y="301" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">PSM</text>
+<text x="537.25" y="317" font-size="11.5" fill="#898781" text-anchor="middle">154 → 0</text>
+<path d="M589.8,282.0 V136.0 Q589.8,132.0 593.8,132.0 H611.8 Q615.8,132.0 615.8,136.0 V282.0 Z" fill="#2a78d6"/>
+<path d="M617.8,282 V282 Q617.8,280 619.8,280 H641.8 Q643.8,280 643.8,282 V282 Z" fill="#eb6834"/>
+<text x="630.75" y="274.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">0</text>
+<text x="616.75" y="301" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">SPAT</text>
+<text x="616.75" y="317" font-size="11.5" fill="#898781" text-anchor="middle">1968 → 0</text>
+<path d="M669.2,282.0 V136.0 Q669.2,132.0 673.2,132.0 H691.2 Q695.2,132.0 695.2,136.0 V282.0 Z" fill="#2a78d6"/>
+<path d="M697.2,282 V282 Q697.2,278 701.2,278 H719.2 Q723.2,278 723.2,282 V282 Z" fill="#eb6834"/>
+<text x="710.25" y="272.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">1</text>
+<text x="696.25" y="301" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">MAP</text>
+<text x="696.25" y="317" font-size="11.5" fill="#898781" text-anchor="middle">2710 → 1</text>
+<text x="16" y="356" font-size="13.5" font-weight="600" fill="#0b0b0b">JER to UPER</text>
+<line x1="56" x2="374" y1="528.0" y2="528.0" stroke="#c3c2b7"/>
+<text x="48" y="532.0" font-size="11.5" fill="#898781" text-anchor="end">0%</text>
+<line x1="56" x2="374" y1="453.0" y2="453.0" stroke="#e1e0d9"/>
+<text x="48" y="457.0" font-size="11.5" fill="#898781" text-anchor="end">50%</text>
+<line x1="56" x2="374" y1="378.0" y2="378.0" stroke="#e1e0d9"/>
+<text x="48" y="382.0" font-size="11.5" fill="#898781" text-anchor="end">100%</text>
+<path d="M68.8,528.0 V382.0 Q68.8,378.0 72.8,378.0 H90.8 Q94.8,378.0 94.8,382.0 V528.0 Z" fill="#2a78d6"/>
+<path d="M96.8,528 V528 Q96.8,526 98.8,526 H120.8 Q122.8,526 122.8,528 V528 Z" fill="#eb6834"/>
+<text x="109.75" y="520.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">0</text>
+<text x="95.75" y="547" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">BSM</text>
+<text x="95.75" y="563" font-size="11.5" fill="#898781" text-anchor="middle">65 → 0</text>
+<path d="M148.2,528.0 V382.0 Q148.2,378.0 152.2,378.0 H170.2 Q174.2,378.0 174.2,382.0 V528.0 Z" fill="#2a78d6"/>
+<path d="M176.2,528 V528 Q176.2,526 178.2,526 H200.2 Q202.2,526 202.2,528 V528 Z" fill="#eb6834"/>
+<text x="189.25" y="520.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">0</text>
+<text x="175.25" y="547" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">PSM</text>
+<text x="175.25" y="563" font-size="11.5" fill="#898781" text-anchor="middle">203 → 0</text>
+<path d="M227.8,528.0 V382.0 Q227.8,378.0 231.8,378.0 H249.8 Q253.8,378.0 253.8,382.0 V528.0 Z" fill="#2a78d6"/>
+<path d="M255.8,528 V528 Q255.8,526 257.8,526 H279.8 Q281.8,526 281.8,528 V528 Z" fill="#eb6834"/>
+<text x="268.75" y="520.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">0</text>
+<text x="254.75" y="547" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">SPAT</text>
+<text x="254.75" y="563" font-size="11.5" fill="#898781" text-anchor="middle">2262 → 0</text>
+<path d="M307.2,528.0 V382.0 Q307.2,378.0 311.2,378.0 H329.2 Q333.2,378.0 333.2,382.0 V528.0 Z" fill="#2a78d6"/>
+<path d="M335.2,528 V528 Q335.2,524 339.2,524 H357.2 Q361.2,524 361.2,528 V528 Z" fill="#eb6834"/>
+<text x="348.25" y="518.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">1</text>
+<text x="334.25" y="547" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">MAP</text>
+<text x="334.25" y="563" font-size="11.5" fill="#898781" text-anchor="middle">3107 → 1</text>
+<text x="378" y="356" font-size="13.5" font-weight="600" fill="#0b0b0b">XER to UPER</text>
+<line x1="418" x2="736" y1="528.0" y2="528.0" stroke="#c3c2b7"/>
+<text x="410" y="532.0" font-size="11.5" fill="#898781" text-anchor="end">0%</text>
+<line x1="418" x2="736" y1="453.0" y2="453.0" stroke="#e1e0d9"/>
+<text x="410" y="457.0" font-size="11.5" fill="#898781" text-anchor="end">50%</text>
+<line x1="418" x2="736" y1="378.0" y2="378.0" stroke="#e1e0d9"/>
+<text x="410" y="382.0" font-size="11.5" fill="#898781" text-anchor="end">100%</text>
+<path d="M430.8,528.0 V382.0 Q430.8,378.0 434.8,378.0 H452.8 Q456.8,378.0 456.8,382.0 V528.0 Z" fill="#2a78d6"/>
+<path d="M458.8,528 V528 Q458.8,526 460.8,526 H482.8 Q484.8,526 484.8,528 V528 Z" fill="#eb6834"/>
+<text x="471.75" y="520.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">0</text>
+<text x="457.75" y="547" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">BSM</text>
+<text x="457.75" y="563" font-size="11.5" fill="#898781" text-anchor="middle">72 → 0</text>
+<path d="M510.2,528.0 V382.0 Q510.2,378.0 514.2,378.0 H532.2 Q536.2,378.0 536.2,382.0 V528.0 Z" fill="#2a78d6"/>
+<path d="M538.2,528 V528 Q538.2,526 540.2,526 H562.2 Q564.2,526 564.2,528 V528 Z" fill="#eb6834"/>
+<text x="551.25" y="520.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">0</text>
+<text x="537.25" y="547" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">PSM</text>
+<text x="537.25" y="563" font-size="11.5" fill="#898781" text-anchor="middle">212 → 0</text>
+<path d="M589.8,528.0 V382.0 Q589.8,378.0 593.8,378.0 H611.8 Q615.8,378.0 615.8,382.0 V528.0 Z" fill="#2a78d6"/>
+<path d="M617.8,528 V528 Q617.8,526 619.8,526 H641.8 Q643.8,526 643.8,528 V528 Z" fill="#eb6834"/>
+<text x="630.75" y="520.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">0</text>
+<text x="616.75" y="547" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">SPAT</text>
+<text x="616.75" y="563" font-size="11.5" fill="#898781" text-anchor="middle">2429 → 0</text>
+<path d="M669.2,528.0 V382.0 Q669.2,378.0 673.2,378.0 H691.2 Q695.2,378.0 695.2,382.0 V528.0 Z" fill="#2a78d6"/>
+<path d="M697.2,528 V528 Q697.2,524 701.2,524 H719.2 Q723.2,524 723.2,528 V528 Z" fill="#eb6834"/>
+<text x="710.25" y="518.0" font-size="12" font-weight="600" fill="#0b0b0b" text-anchor="middle">1</text>
+<text x="696.25" y="547" font-size="12.5" font-weight="600" fill="#0b0b0b" text-anchor="middle">MAP</text>
+<text x="696.25" y="563" font-size="11.5" fill="#898781" text-anchor="middle">3269 → 1</text>
+</svg>

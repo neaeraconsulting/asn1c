@@ -4,6 +4,8 @@
 #include <asn_application.h>
 #include <asn_system.h>
 #include <INTEGER.h>
+#include <NativeInteger.h>
+#include <asn_internal.h>
 
 #define CHECK_XER(a,b,c)        check_xer(__LINE__, a, b, c)
 #define CHECK_JER(a,b,c)        check_jer(__LINE__, a, b, c)
@@ -278,14 +280,68 @@ check_unsigned_64(uint8_t *buf, int size, uint64_t check_u64, int check_ret) {
 	}
 }
 
+/*
+ * The NativeInteger decoders of XER and JER don't build an INTEGER.
+ * Check that they accept, refuse and yield the same as the INTEGER ones,
+ * for a signed and an unsigned type.
+ */
 static void
-check_xer(int lineno, int tofail, char *xmldata, long orig_value) {
+check_native_text(int is_jer, const char *data) {
+	int unsigned_;
+
+	for(unsigned_ = 0; unsigned_ < 2; unsigned_++) {
+		struct asn_INTEGER_specifics_s specs;
+		asn_TYPE_descriptor_t int_td = asn_DEF_INTEGER;
+		asn_TYPE_descriptor_t nat_td = asn_DEF_NativeInteger;
+		INTEGER_t *st = 0;
+		long *native = 0;
+		long expect = 0;
+		asn_dec_rval_t int_rc, nat_rc;
+		int expect_ok;
+
+		memset(&specs, 0, sizeof(specs));
+		specs.field_width = sizeof(long);
+		specs.field_unsigned = unsigned_;
+		int_td.specifics = &specs;
+		nat_td.specifics = &specs;
+
+		if(is_jer) {
+			int_rc = jer_decode(0, &int_td, (void *)&st, data, strlen(data));
+			nat_rc = jer_decode(0, &nat_td, (void *)&native, data, strlen(data));
+		} else {
+			int_rc = xer_decode(0, &int_td, (void *)&st, data, strlen(data));
+			nat_rc = xer_decode(0, &nat_td, (void *)&native, data, strlen(data));
+		}
+
+		expect_ok = (int_rc.code == RC_OK)
+			&& (unsigned_ ? asn_INTEGER2ulong(st, (unsigned long *)&expect)
+			              : asn_INTEGER2long(st, &expect)) == 0;
+		if(expect_ok) {
+			assert(nat_rc.code == RC_OK);
+			assert(nat_rc.consumed == int_rc.consumed);
+			assert(native && *native == expect);
+		} else if(int_rc.code == RC_OK) {
+			/* Decoded, but does not fit the native type. */
+			assert(nat_rc.code == RC_FAIL);
+		} else {
+			assert(nat_rc.code == int_rc.code);
+		}
+
+		ASN_STRUCT_FREE(int_td, st);
+		ASN_STRUCT_FREE(nat_td, native);
+	}
+}
+
+static void
+check_xer(int lineno, int tofail, char *xmldata, intmax_t orig_value) {
 	INTEGER_t *st = 0;
 	asn_dec_rval_t rc;
-	long value;
+	intmax_t value = 0;
 	int ret = -1;
 
-	printf("%03d: [%s] vs %ld: ", lineno, xmldata, orig_value);
+	printf("%03d: [%s] vs %" ASN_PRIdMAX ": ", lineno, xmldata, orig_value);
+
+	check_native_text(0, xmldata);
 
 	rc = xer_decode(0, &asn_DEF_INTEGER, (void *)&st,
 		xmldata, strlen(xmldata));
@@ -300,10 +356,10 @@ check_xer(int lineno, int tofail, char *xmldata, long orig_value) {
 	        assert(!tofail);
         }
 
-	ret = asn_INTEGER2long(st, &value);
+	ret = asn_INTEGER2imax(st, &value);
 	assert(ret == 0);
 
-	printf("\t%ld\n", value);
+	printf("\t%" ASN_PRIdMAX "\n", value);
 
 	assert(value == orig_value);
 
@@ -311,14 +367,16 @@ check_xer(int lineno, int tofail, char *xmldata, long orig_value) {
 }
 
 static void
-check_jer(int lineno, int tofail, char *jsondata, long orig_value) {
+check_jer(int lineno, int tofail, char *jsondata, intmax_t orig_value) {
 	INTEGER_t *st = 0;
 	asn_dec_rval_t rc;
-	long value = 0;
+	intmax_t value = 0;
 	int ret = -1;
 
-	printf("%03d: [%s] vs %ld: ", lineno, jsondata, orig_value);
+	printf("%03d: [%s] vs %" ASN_PRIdMAX ": ", lineno, jsondata, orig_value);
     fflush(stdout);
+
+	check_native_text(1, jsondata);
 
 	rc = jer_decode(0, &asn_DEF_INTEGER, (void *)&st,
 		jsondata, strlen(jsondata));
@@ -333,10 +391,10 @@ check_jer(int lineno, int tofail, char *jsondata, long orig_value) {
 	    assert(!tofail);
     }
 
-	ret = asn_INTEGER2long(st, &value);
+	ret = asn_INTEGER2imax(st, &value);
 	assert(ret == 0);
 
-	printf("\t%ld\n", value);
+	printf("\t%" ASN_PRIdMAX "\n", value);
 
 	assert(value == orig_value);
 
@@ -466,6 +524,36 @@ check_strtoimax_span() {
 
 }
 
+/*
+ * The decimal formatter which stands in for snprintf(3) in the encoders.
+ */
+static void
+check_format(void) {
+	static const intmax_t values[] = {
+		0, 1, -1, 9, 10, -9, -10, 99, 100, 12345, -12345,
+		INT32_MAX, INT32_MIN, LONG_MAX, LONG_MIN, INTMAX_MAX, INTMAX_MIN
+	};
+	char buf[ASN__FORMAT_INT_SIZE];
+	char expect[64];
+	const char *text;
+	size_t len;
+	size_t i;
+
+	for(i = 0; i < sizeof(values) / sizeof(values[0]); i++) {
+		snprintf(expect, sizeof(expect), "%" ASN_PRIdMAX, values[i]);
+		text = asn__format_imax(buf, values[i], &len);
+		printf("format %s\n", expect);
+		assert(text >= buf && text + len == buf + sizeof(buf));
+		assert(len == strlen(expect) && memcmp(text, expect, len) == 0);
+
+		snprintf(expect, sizeof(expect), "%" ASN_PRIuMAX,
+		         (uintmax_t)values[i]);
+		text = asn__format_umax(buf, (uintmax_t)values[i], &len);
+		assert(text >= buf && text + len == buf + sizeof(buf));
+		assert(len == strlen(expect) && memcmp(text, expect, len) == 0);
+	}
+}
+
 int
 main() {
 	uint8_t buf1[] = { 1 };
@@ -493,6 +581,8 @@ main() {
 #define	CHECK(buf, val, ret)	check(buf, sizeof(buf), val, ret)
 #define	UCHECK64(buf, val, ret)	check_unsigned_64(buf, sizeof(buf), val, ret)
 #define	CHECK64(buf, val, ret)	check_64(buf, sizeof(buf), val, ret)
+
+	check_format();
 
 	CHECK(buf1, 1, 0);
 	CHECK(buf2, -1, 0);
@@ -573,45 +663,26 @@ main() {
 	CHECK_XER(0, "<INTEGER>-2147483648</INTEGER>", -2147483647-1);
 	CHECK_XER(0, "<INTEGER>+2147483647</INTEGER>", 2147483647);
 	CHECK_XER(0, "<INTEGER>2147483647</INTEGER>", 2147483647);
-	if(sizeof(long) == 4) {
-		CHECK_XER( 0, "<INTEGER>-2147483648</INTEGER>", -2147483648);
-		CHECK_XER(-1, "<INTEGER>-2147483649</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>2147483648</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>2147483649</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>3147483649</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>4147483649</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>5147483649</INTEGER>", 0); /* special */
-		CHECK_XER(-1, "<INTEGER>9147483649</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>9999999999</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>-5147483649</INTEGER>", 0);/* special */
-		CHECK_XER(-1, "<INTEGER>-9147483649</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>-9999999999</INTEGER>", 0);
-	}
-#ifdef  TEST_64BIT
-	if(sizeof(long) == 8) {
-		CHECK_XER(0, "<INTEGER>2147483648</INTEGER>", 2147483648);
-		CHECK_XER(0, "<INTEGER>2147483649</INTEGER>", 2147483649);
-		CHECK_XER(0, "<INTEGER>3147483649</INTEGER>", 3147483649);
-		CHECK_XER(0, "<INTEGER>4147483649</INTEGER>", 4147483649);
-		CHECK_XER(0, "<INTEGER>5147483649</INTEGER>", 5147483649);
-		CHECK_XER(0, "<INTEGER>9147483649</INTEGER>", 9147483649);
-		CHECK_XER(0, "<INTEGER>9999999999</INTEGER>", 9999999999);
-		CHECK_XER(0, "<INTEGER>9223372036854775807</INTEGER>", 9223372036854775807);
-		CHECK_XER(-1, "<INTEGER>9223372036854775808</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>10223372036854775807</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>50223372036854775807</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>100223372036854775807</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>500223372036854775807</INTEGER>", 0);
-		CHECK_XER(0, "<INTEGER>-9223372036854775808</INTEGER>", -9223372036854775807-1);
-		CHECK_XER(-1, "<INTEGER>-9223372036854775809</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>-10223372036854775807</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>-50223372036854775807</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>-100223372036854775807</INTEGER>", 0);
-		CHECK_XER(-1, "<INTEGER>-500223372036854775807</INTEGER>", 0);
-	} else {
-                assert(sizeof(long) == 8);
-        }
-#endif
+	/* INTEGER holds whatever fits intmax_t, also where long is 32 bits. */
+	CHECK_XER(0, "<INTEGER>2147483648</INTEGER>", 2147483648);
+	CHECK_XER(0, "<INTEGER>2147483649</INTEGER>", 2147483649);
+	CHECK_XER(0, "<INTEGER>3147483649</INTEGER>", 3147483649);
+	CHECK_XER(0, "<INTEGER>4147483649</INTEGER>", 4147483649);
+	CHECK_XER(0, "<INTEGER>5147483649</INTEGER>", 5147483649);
+	CHECK_XER(0, "<INTEGER>9147483649</INTEGER>", 9147483649);
+	CHECK_XER(0, "<INTEGER>9999999999</INTEGER>", 9999999999);
+	CHECK_XER(0, "<INTEGER>9223372036854775807</INTEGER>", 9223372036854775807);
+	CHECK_XER(-1, "<INTEGER>9223372036854775808</INTEGER>", 0);
+	CHECK_XER(-1, "<INTEGER>10223372036854775807</INTEGER>", 0);
+	CHECK_XER(-1, "<INTEGER>50223372036854775807</INTEGER>", 0);
+	CHECK_XER(-1, "<INTEGER>100223372036854775807</INTEGER>", 0);
+	CHECK_XER(-1, "<INTEGER>500223372036854775807</INTEGER>", 0);
+	CHECK_XER(0, "<INTEGER>-9223372036854775808</INTEGER>", -9223372036854775807-1);
+	CHECK_XER(-1, "<INTEGER>-9223372036854775809</INTEGER>", 0);
+	CHECK_XER(-1, "<INTEGER>-10223372036854775807</INTEGER>", 0);
+	CHECK_XER(-1, "<INTEGER>-50223372036854775807</INTEGER>", 0);
+	CHECK_XER(-1, "<INTEGER>-100223372036854775807</INTEGER>", 0);
+	CHECK_XER(-1, "<INTEGER>-500223372036854775807</INTEGER>", 0);
 
 	CHECK_JER(-1, "", 0);
 	CHECK_JER(-1, " ", 0);
@@ -657,45 +728,26 @@ main() {
 	CHECK_JER(0, "-2147483648", -2147483647-1);
 	CHECK_JER(-1, "+2147483647", 0);
 	CHECK_JER(0, "2147483647", 2147483647);
-	if(sizeof(long) == 4) {
-		CHECK_JER( 0, "-2147483648", -2147483648);
-		CHECK_JER(-1, "-2147483649", 0);
-		CHECK_JER(-1, "2147483648", 0);
-		CHECK_JER(-1, "2147483649", 0);
-		CHECK_JER(-1, "3147483649", 0);
-		CHECK_JER(-1, "4147483649", 0);
-		CHECK_JER(-1, "5147483649", 0); /* special */
-		CHECK_JER(-1, "9147483649", 0);
-		CHECK_JER(-1, "9999999999", 0);
-		CHECK_JER(-1, "-5147483649", 0);/* special */
-		CHECK_JER(-1, "-9147483649", 0);
-		CHECK_JER(-1, "-9999999999", 0);
-	}
-#ifdef  TEST_64BIT
-	if(sizeof(long) == 8) {
-		CHECK_JER(0, "2147483648", 2147483648);
-		CHECK_JER(0, "2147483649", 2147483649);
-		CHECK_JER(0, "3147483649", 3147483649);
-		CHECK_JER(0, "4147483649", 4147483649);
-		CHECK_JER(0, "5147483649", 5147483649);
-		CHECK_JER(0, "9147483649", 9147483649);
-		CHECK_JER(0, "9999999999", 9999999999);
-		CHECK_JER(0, "9223372036854775807", 9223372036854775807);
-		CHECK_JER(-1, "9223372036854775808", 0);
-		CHECK_JER(-1, "10223372036854775807", 0);
-		CHECK_JER(-1, "50223372036854775807", 0);
-		CHECK_JER(-1, "100223372036854775807", 0);
-		CHECK_JER(-1, "500223372036854775807", 0);
-		CHECK_JER(0, "-9223372036854775808", -9223372036854775807-1);
-		CHECK_JER(-1, "-9223372036854775809", 0);
-		CHECK_JER(-1, "-10223372036854775807", 0);
-		CHECK_JER(-1, "-50223372036854775807", 0);
-		CHECK_JER(-1, "-100223372036854775807", 0);
-		CHECK_JER(-1, "-500223372036854775807", 0);
-	} else {
-        assert(sizeof(long) == 8);
-    }
-#endif
+	/* INTEGER holds whatever fits intmax_t, also where long is 32 bits. */
+	CHECK_JER(0, "2147483648", 2147483648);
+	CHECK_JER(0, "2147483649", 2147483649);
+	CHECK_JER(0, "3147483649", 3147483649);
+	CHECK_JER(0, "4147483649", 4147483649);
+	CHECK_JER(0, "5147483649", 5147483649);
+	CHECK_JER(0, "9147483649", 9147483649);
+	CHECK_JER(0, "9999999999", 9999999999);
+	CHECK_JER(0, "9223372036854775807", 9223372036854775807);
+	CHECK_JER(-1, "9223372036854775808", 0);
+	CHECK_JER(-1, "10223372036854775807", 0);
+	CHECK_JER(-1, "50223372036854775807", 0);
+	CHECK_JER(-1, "100223372036854775807", 0);
+	CHECK_JER(-1, "500223372036854775807", 0);
+	CHECK_JER(0, "-9223372036854775808", -9223372036854775807-1);
+	CHECK_JER(-1, "-9223372036854775809", 0);
+	CHECK_JER(-1, "-10223372036854775807", 0);
+	CHECK_JER(-1, "-50223372036854775807", 0);
+	CHECK_JER(-1, "-100223372036854775807", 0);
+	CHECK_JER(-1, "-500223372036854775807", 0);
 
     check_strtoimax();
     check_strtoimax_span();

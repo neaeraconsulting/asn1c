@@ -21,7 +21,9 @@ check_PROGRAMS =                \
     check-APER-INTEGER		\
     check-UPER-support          \
     check-UPER-UniversalString  \
-    check-UPER-INTEGER
+    check-UPER-INTEGER          \
+    check-arena                 \
+    check-tokenizers
 
 if EXPLICIT_M32
 check_PROGRAMS +=                   \
@@ -45,7 +47,9 @@ check_PROGRAMS +=                   \
     check-32-APER-INTEGER           \
     check-32-UPER-support           \
     check-32-UPER-UniversalString   \
-    check-32-UPER-INTEGER
+    check-32-UPER-INTEGER           \
+    check-32-arena                  \
+    check-32-tokenizers
 
 check_32_ber_tlv_tag_CFLAGS=$(CFLAGS_M32)
 check_32_ber_tlv_tag_LDADD=$(LDADD_32)
@@ -110,6 +114,12 @@ check_32_UPER_UniversalString_SOURCES=check-UPER-UniversalString.c
 check_32_UPER_INTEGER_CFLAGS=$(CFLAGS_M32)
 check_32_UPER_INTEGER_LDADD=$(LDADD_32)
 check_32_UPER_INTEGER_SOURCES=check-UPER-INTEGER.c
+check_32_arena_CFLAGS=$(CFLAGS_M32)
+check_32_arena_LDADD=$(LDADD_32)
+check_32_arena_SOURCES=check-arena.c
+check_32_tokenizers_CFLAGS=$(CFLAGS_M32)
+check_32_tokenizers_LDADD=$(LDADD_32)
+check_32_tokenizers_SOURCES=check-tokenizers.c
 
 
 LDADD_32 = -lm $(top_builddir)/skeletons/libasn1cskeletons_c89_32.la

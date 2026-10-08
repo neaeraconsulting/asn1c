@@ -15,18 +15,19 @@ NativeInteger_print(const asn_TYPE_descriptor_t *td, const void *sptr,
     const asn_INTEGER_specifics_t *specs =
         (const asn_INTEGER_specifics_t *)td->specifics;
     const long *native = (const long *)sptr;
-    char scratch[32];  /* Enough for 64-bit int */
-    int ret;
+    char scratch[ASN__FORMAT_INT_SIZE];
 
     (void)td;      /* Unused argument */
     (void)ilevel;  /* Unused argument */
 
     if(native) {
         long value = *native;
-        ret = snprintf(scratch, sizeof(scratch),
-                       (specs && specs->field_unsigned) ? "%lu" : "%ld", value);
-        assert(ret > 0 && (size_t)ret < sizeof(scratch));
-        if(cb(scratch, ret, app_key) < 0) return -1;
+        size_t text_len;
+        const char *text =
+            (specs && specs->field_unsigned)
+                ? asn__format_umax(scratch, (unsigned long)value, &text_len)
+                : asn__format_imax(scratch, value, &text_len);
+        if(cb(text, text_len, app_key) < 0) return -1;
         if(specs && (value >= 0 || !specs->field_unsigned)) {
             const asn_INTEGER_enum_map_t *el =
                 INTEGER_map_value2enum(specs, value);

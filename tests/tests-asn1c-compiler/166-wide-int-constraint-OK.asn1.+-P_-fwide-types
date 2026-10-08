@@ -1,27 +1,207 @@
 
-/*** <<< INCLUDES [MinMax] >>> ***/
+/*** <<< INCLUDES [Uint64] >>> ***/
 
 #include <INTEGER.h>
 
-/*** <<< TYPE-DECLS [MinMax] >>> ***/
+/*** <<< TYPE-DECLS [Uint64] >>> ***/
 
-typedef INTEGER_t	 MinMax_16P0_t;
+typedef INTEGER_t	 Uint64_t;
 
-/*** <<< FUNC-DECLS [MinMax] >>> ***/
+/*** <<< FUNC-DECLS [Uint64] >>> ***/
 
-extern asn_TYPE_descriptor_t asn_DEF_MinMax_16P0;
-asn_struct_free_f MinMax_16P0_free;
-asn_struct_print_f MinMax_16P0_print;
-asn_constr_check_f MinMax_16P0_constraint;
-ber_type_decoder_f MinMax_16P0_decode_ber;
-der_type_encoder_f MinMax_16P0_encode_der;
-xer_type_decoder_f MinMax_16P0_decode_xer;
-xer_type_encoder_f MinMax_16P0_encode_xer;
+extern asn_TYPE_descriptor_t asn_DEF_Uint64;
+asn_struct_free_f Uint64_free;
+asn_struct_print_f Uint64_print;
+asn_constr_check_f Uint64_constraint;
+ber_type_decoder_f Uint64_decode_ber;
+der_type_encoder_f Uint64_encode_der;
+xer_type_decoder_f Uint64_decode_xer;
+xer_type_encoder_f Uint64_encode_xer;
 
-/*** <<< CODE [MinMax] >>> ***/
+/*** <<< CODE [Uint64] >>> ***/
 
 int
-MinMax_16P0_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
+Uint64_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
+			asn_app_constraint_failed_f *ctfailcb, void *app_key) {
+	const INTEGER_t *st = (const INTEGER_t *)sptr;
+	uintmax_t value;
+	
+	if(!sptr) {
+		ASN__CTFAIL(app_key, td, sptr,
+			"%s: value not given (%s:%d)",
+			td->name, __FILE__, __LINE__);
+		return -1;
+	}
+	
+	if((st->buf && st->size && (st->buf[0] & 0x80))
+	   || asn_INTEGER2umax(st, &value)) {
+		ASN__CTFAIL(app_key, td, sptr,
+			"%s: value out of range (%s:%d)",
+			td->name, __FILE__, __LINE__);
+		return -1;
+	}
+	
+	if((value <= 18446744073709551615UL)) {
+		/* Constraint check succeeded */
+		return 0;
+	} else {
+		ASN__CTFAIL(app_key, td, sptr,
+			"%s: constraint failed (%s:%d)",
+			td->name, __FILE__, __LINE__);
+		return -1;
+	}
+}
+
+/*
+ * This type is implemented using INTEGER,
+ * so here we adjust the DEF accordingly.
+ */
+
+/*** <<< STAT-DEFS [Uint64] >>> ***/
+
+static const ber_tlv_tag_t asn_DEF_Uint64_tags_1[] = {
+	(ASN_TAG_CLASS_UNIVERSAL | (2 << 2))
+};
+asn_TYPE_descriptor_t asn_DEF_Uint64 = {
+	"Uint64",
+	"Uint64",
+	&asn_OP_INTEGER,
+	asn_DEF_Uint64_tags_1,
+	sizeof(asn_DEF_Uint64_tags_1)
+		/sizeof(asn_DEF_Uint64_tags_1[0]), /* 1 */
+	asn_DEF_Uint64_tags_1,	/* Same as above */
+	sizeof(asn_DEF_Uint64_tags_1)
+		/sizeof(asn_DEF_Uint64_tags_1[0]), /* 1 */
+	{
+#if !defined(ASN_DISABLE_OER_SUPPORT)
+		0,
+#endif  /* !defined(ASN_DISABLE_OER_SUPPORT) */
+#if !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT)
+		0,
+#endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
+#if !defined(ASN_DISABLE_JER_SUPPORT)
+		0,
+#endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
+		Uint64_constraint
+	},
+	0, 0,	/* No members */
+	0	/* No specifics */
+};
+
+
+/*** <<< INCLUDES [Time64] >>> ***/
+
+#include "Uint64.h"
+
+/*** <<< TYPE-DECLS [Time64] >>> ***/
+
+typedef Uint64_t	 Time64_t;
+
+/*** <<< FUNC-DECLS [Time64] >>> ***/
+
+extern asn_TYPE_descriptor_t asn_DEF_Time64;
+asn_struct_free_f Time64_free;
+asn_struct_print_f Time64_print;
+asn_constr_check_f Time64_constraint;
+ber_type_decoder_f Time64_decode_ber;
+der_type_encoder_f Time64_encode_der;
+xer_type_decoder_f Time64_decode_xer;
+xer_type_encoder_f Time64_encode_xer;
+
+/*** <<< CODE [Time64] >>> ***/
+
+int
+Time64_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
+			asn_app_constraint_failed_f *ctfailcb, void *app_key) {
+	const Uint64_t *st = (const Uint64_t *)sptr;
+	uintmax_t value;
+	
+	if(!sptr) {
+		ASN__CTFAIL(app_key, td, sptr,
+			"%s: value not given (%s:%d)",
+			td->name, __FILE__, __LINE__);
+		return -1;
+	}
+	
+	if((st->buf && st->size && (st->buf[0] & 0x80))
+	   || asn_INTEGER2umax(st, &value)) {
+		ASN__CTFAIL(app_key, td, sptr,
+			"%s: value out of range (%s:%d)",
+			td->name, __FILE__, __LINE__);
+		return -1;
+	}
+	
+	if((value <= 18446744073709551615UL)) {
+		/* Constraint check succeeded */
+		return 0;
+	} else {
+		ASN__CTFAIL(app_key, td, sptr,
+			"%s: constraint failed (%s:%d)",
+			td->name, __FILE__, __LINE__);
+		return -1;
+	}
+}
+
+/*
+ * This type is implemented using Uint64,
+ * so here we adjust the DEF accordingly.
+ */
+
+/*** <<< STAT-DEFS [Time64] >>> ***/
+
+static const ber_tlv_tag_t asn_DEF_Time64_tags_1[] = {
+	(ASN_TAG_CLASS_UNIVERSAL | (2 << 2))
+};
+asn_TYPE_descriptor_t asn_DEF_Time64 = {
+	"Time64",
+	"Time64",
+	&asn_OP_INTEGER,
+	asn_DEF_Time64_tags_1,
+	sizeof(asn_DEF_Time64_tags_1)
+		/sizeof(asn_DEF_Time64_tags_1[0]), /* 1 */
+	asn_DEF_Time64_tags_1,	/* Same as above */
+	sizeof(asn_DEF_Time64_tags_1)
+		/sizeof(asn_DEF_Time64_tags_1[0]), /* 1 */
+	{
+#if !defined(ASN_DISABLE_OER_SUPPORT)
+		0,
+#endif  /* !defined(ASN_DISABLE_OER_SUPPORT) */
+#if !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT)
+		0,
+#endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
+#if !defined(ASN_DISABLE_JER_SUPPORT)
+		0,
+#endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
+		Time64_constraint
+	},
+	0, 0,	/* No members */
+	0	/* No specifics */
+};
+
+
+/*** <<< INCLUDES [Signed40] >>> ***/
+
+#include <INTEGER.h>
+
+/*** <<< TYPE-DECLS [Signed40] >>> ***/
+
+typedef INTEGER_t	 Signed40_t;
+
+/*** <<< FUNC-DECLS [Signed40] >>> ***/
+
+extern asn_TYPE_descriptor_t asn_DEF_Signed40;
+asn_struct_free_f Signed40_free;
+asn_struct_print_f Signed40_print;
+asn_constr_check_f Signed40_constraint;
+ber_type_decoder_f Signed40_decode_ber;
+der_type_encoder_f Signed40_encode_der;
+xer_type_decoder_f Signed40_decode_xer;
+xer_type_encoder_f Signed40_encode_xer;
+
+/*** <<< CODE [Signed40] >>> ***/
+
+int
+Signed40_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
 			asn_app_constraint_failed_f *ctfailcb, void *app_key) {
 	const INTEGER_t *st = (const INTEGER_t *)sptr;
 	intmax_t value;
@@ -40,7 +220,7 @@ MinMax_16P0_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
 		return -1;
 	}
 	
-	if((value >= 3L)) {
+	if((value >= -549755813888L && value <= 549755813887L)) {
 		/* Constraint check succeeded */
 		return 0;
 	} else {
@@ -56,21 +236,21 @@ MinMax_16P0_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
  * so here we adjust the DEF accordingly.
  */
 
-/*** <<< STAT-DEFS [MinMax] >>> ***/
+/*** <<< STAT-DEFS [Signed40] >>> ***/
 
-static const ber_tlv_tag_t asn_DEF_MinMax_16P0_tags_1[] = {
+static const ber_tlv_tag_t asn_DEF_Signed40_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (2 << 2))
 };
-asn_TYPE_descriptor_t asn_DEF_MinMax_16P0 = {
-	"MinMax",
-	"MinMax",
+asn_TYPE_descriptor_t asn_DEF_Signed40 = {
+	"Signed40",
+	"Signed40",
 	&asn_OP_INTEGER,
-	asn_DEF_MinMax_16P0_tags_1,
-	sizeof(asn_DEF_MinMax_16P0_tags_1)
-		/sizeof(asn_DEF_MinMax_16P0_tags_1[0]), /* 1 */
-	asn_DEF_MinMax_16P0_tags_1,	/* Same as above */
-	sizeof(asn_DEF_MinMax_16P0_tags_1)
-		/sizeof(asn_DEF_MinMax_16P0_tags_1[0]), /* 1 */
+	asn_DEF_Signed40_tags_1,
+	sizeof(asn_DEF_Signed40_tags_1)
+		/sizeof(asn_DEF_Signed40_tags_1[0]), /* 1 */
+	asn_DEF_Signed40_tags_1,	/* Same as above */
+	sizeof(asn_DEF_Signed40_tags_1)
+		/sizeof(asn_DEF_Signed40_tags_1[0]), /* 1 */
 	{
 #if !defined(ASN_DISABLE_OER_SUPPORT)
 		0,
@@ -79,41 +259,40 @@ asn_TYPE_descriptor_t asn_DEF_MinMax_16P0 = {
 		0,
 #endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
 #if !defined(ASN_DISABLE_JER_SUPPORT)
-              0,
+		0,
 #endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
-		MinMax_16P0_constraint
+		Signed40_constraint
 	},
 	0, 0,	/* No members */
 	0	/* No specifics */
 };
 
 
-/*** <<< INCLUDES [ThreePlus] >>> ***/
+/*** <<< INCLUDES [Small] >>> ***/
 
-#include "MinMax.h"
+#include <NativeInteger.h>
 
-/*** <<< TYPE-DECLS [ThreePlus] >>> ***/
+/*** <<< TYPE-DECLS [Small] >>> ***/
 
-typedef MinMax_16P0_t	 ThreePlus_t;
+typedef long	 Small_t;
 
-/*** <<< FUNC-DECLS [ThreePlus] >>> ***/
+/*** <<< FUNC-DECLS [Small] >>> ***/
 
-extern asn_TYPE_descriptor_t asn_DEF_ThreePlus;
-asn_struct_free_f ThreePlus_free;
-asn_struct_print_f ThreePlus_print;
-asn_constr_check_f ThreePlus_constraint;
-ber_type_decoder_f ThreePlus_decode_ber;
-der_type_encoder_f ThreePlus_encode_der;
-xer_type_decoder_f ThreePlus_decode_xer;
-xer_type_encoder_f ThreePlus_encode_xer;
+extern asn_TYPE_descriptor_t asn_DEF_Small;
+asn_struct_free_f Small_free;
+asn_struct_print_f Small_print;
+asn_constr_check_f Small_constraint;
+ber_type_decoder_f Small_decode_ber;
+der_type_encoder_f Small_encode_der;
+xer_type_decoder_f Small_decode_xer;
+xer_type_encoder_f Small_encode_xer;
 
-/*** <<< CODE [ThreePlus] >>> ***/
+/*** <<< CODE [Small] >>> ***/
 
 int
-ThreePlus_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
+Small_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
 			asn_app_constraint_failed_f *ctfailcb, void *app_key) {
-	const MinMax_16P0_t *st = (const MinMax_16P0_t *)sptr;
-	intmax_t value;
+	long value;
 	
 	if(!sptr) {
 		ASN__CTFAIL(app_key, td, sptr,
@@ -122,14 +301,9 @@ ThreePlus_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
 		return -1;
 	}
 	
-	if(asn_INTEGER2imax(st, &value)) {
-		ASN__CTFAIL(app_key, td, sptr,
-			"%s: value too large (%s:%d)",
-			td->name, __FILE__, __LINE__);
-		return -1;
-	}
+	value = *(const long *)sptr;
 	
-	if((value >= 3L)) {
+	if((value >= 0L && value <= 255L)) {
 		/* Constraint check succeeded */
 		return 0;
 	} else {
@@ -141,25 +315,25 @@ ThreePlus_constraint(const asn_TYPE_descriptor_t *td, const void *sptr,
 }
 
 /*
- * This type is implemented using MinMax_16P0,
+ * This type is implemented using NativeInteger,
  * so here we adjust the DEF accordingly.
  */
 
-/*** <<< STAT-DEFS [ThreePlus] >>> ***/
+/*** <<< STAT-DEFS [Small] >>> ***/
 
-static const ber_tlv_tag_t asn_DEF_ThreePlus_tags_1[] = {
+static const ber_tlv_tag_t asn_DEF_Small_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (2 << 2))
 };
-asn_TYPE_descriptor_t asn_DEF_ThreePlus = {
-	"ThreePlus",
-	"ThreePlus",
-	&asn_OP_INTEGER,
-	asn_DEF_ThreePlus_tags_1,
-	sizeof(asn_DEF_ThreePlus_tags_1)
-		/sizeof(asn_DEF_ThreePlus_tags_1[0]), /* 1 */
-	asn_DEF_ThreePlus_tags_1,	/* Same as above */
-	sizeof(asn_DEF_ThreePlus_tags_1)
-		/sizeof(asn_DEF_ThreePlus_tags_1[0]), /* 1 */
+asn_TYPE_descriptor_t asn_DEF_Small = {
+	"Small",
+	"Small",
+	&asn_OP_NativeInteger,
+	asn_DEF_Small_tags_1,
+	sizeof(asn_DEF_Small_tags_1)
+		/sizeof(asn_DEF_Small_tags_1[0]), /* 1 */
+	asn_DEF_Small_tags_1,	/* Same as above */
+	sizeof(asn_DEF_Small_tags_1)
+		/sizeof(asn_DEF_Small_tags_1[0]), /* 1 */
 	{
 #if !defined(ASN_DISABLE_OER_SUPPORT)
 		0,
@@ -168,9 +342,9 @@ asn_TYPE_descriptor_t asn_DEF_ThreePlus = {
 		0,
 #endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
 #if !defined(ASN_DISABLE_JER_SUPPORT)
-              0,
+		0,
 #endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
-		ThreePlus_constraint
+		Small_constraint
 	},
 	0, 0,	/* No members */
 	0	/* No specifics */
@@ -239,7 +413,7 @@ static asn_TYPE_member_t asn_MBR_encoding_5[] = {
 			.per_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
 #if !defined(ASN_DISABLE_JER_SUPPORT)
-                    .jer_constraints = 0,
+			.jer_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
 			.general_constraints = 0
 		},
@@ -259,7 +433,7 @@ static asn_TYPE_member_t asn_MBR_encoding_5[] = {
 			.per_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
 #if !defined(ASN_DISABLE_JER_SUPPORT)
-                    .jer_constraints = 0,
+			.jer_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
 			.general_constraints = 0
 		},
@@ -279,7 +453,7 @@ static asn_TYPE_member_t asn_MBR_encoding_5[] = {
 			.per_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
 #if !defined(ASN_DISABLE_JER_SUPPORT)
-                    .jer_constraints = 0,
+			.jer_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
 			.general_constraints = 0
 		},
@@ -319,7 +493,7 @@ asn_TYPE_descriptor_t asn_DEF_encoding_5 = {
 		0,
 #endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
 #if !defined(ASN_DISABLE_JER_SUPPORT)
-              0,
+		0,
 #endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
 		CHOICE_constraint
 	},
@@ -342,7 +516,7 @@ static asn_TYPE_member_t asn_MBR_EXTERNAL_1[] = {
 			.per_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
 #if !defined(ASN_DISABLE_JER_SUPPORT)
-                    .jer_constraints = 0,
+			.jer_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
 			.general_constraints = 0
 		},
@@ -362,7 +536,7 @@ static asn_TYPE_member_t asn_MBR_EXTERNAL_1[] = {
 			.per_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
 #if !defined(ASN_DISABLE_JER_SUPPORT)
-                    .jer_constraints = 0,
+			.jer_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
 			.general_constraints = 0
 		},
@@ -382,7 +556,7 @@ static asn_TYPE_member_t asn_MBR_EXTERNAL_1[] = {
 			.per_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
 #if !defined(ASN_DISABLE_JER_SUPPORT)
-                    .jer_constraints = 0,
+			.jer_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
 			.general_constraints = 0
 		},
@@ -402,7 +576,7 @@ static asn_TYPE_member_t asn_MBR_EXTERNAL_1[] = {
 			.per_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
 #if !defined(ASN_DISABLE_JER_SUPPORT)
-                    .jer_constraints = 0,
+			.jer_constraints = 0,
 #endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
 			.general_constraints = 0
 		},
@@ -448,7 +622,7 @@ asn_TYPE_descriptor_t asn_DEF_EXTERNAL = {
 		0,
 #endif  /* !defined(ASN_DISABLE_UPER_SUPPORT) || !defined(ASN_DISABLE_APER_SUPPORT) */
 #if !defined(ASN_DISABLE_JER_SUPPORT)
-              0,
+		0,
 #endif  /* !defined(ASN_DISABLE_JER_SUPPORT) */
 		SEQUENCE_constraint
 	},
@@ -457,3 +631,30 @@ asn_TYPE_descriptor_t asn_DEF_EXTERNAL = {
 	&asn_SPC_EXTERNAL_specs_1	/* Additional specs */
 };
 
+
+/*** <<< asn_constant.h >>> ***/
+
+/*
+ * Generated by asn1c-0.9.29 (http://lionet.info/asn1c)
+ */
+
+#ifndef _ASN_CONSTANT_H
+#define _ASN_CONSTANT_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define min_val_Uint64 (0)
+#define max_val_Uint64 (18446744073709551615)
+#define min_val_Signed40 (-549755813888)
+#define max_val_Signed40 (549755813887)
+#define min_val_Small (0)
+#define max_val_Small (255)
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _ASN_CONSTANT_H */

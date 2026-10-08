@@ -2556,8 +2556,8 @@ try_inline_default(arg_t *arg, asn1p_expr_t *expr, int out) {
 			OUT("return (*st != %s);\n",
 				asn1p_itoa(expr->marker.default_value->value.v_integer));
 		} else {
-			OUT("long value;\n");
-			OUT("if(asn_INTEGER2long(st, &value))\n");
+			OUT("intmax_t value;\n");
+			OUT("if(asn_INTEGER2imax(st, &value))\n");
 			OUT("\treturn -1;\n");
 			OUT("return (value != %s);\n",
 				asn1p_itoa(expr->marker.default_value->value.v_integer));

@@ -4,6 +4,8 @@
 #include <INTEGER.h>
 #include <INTEGER.c>
 #include <INTEGER_uper.c>
+#include <NativeInteger.h>
+#include <NativeInteger_uper.c>
 #include <per_support.c>
 #include <per_support.h>
 
@@ -20,6 +22,131 @@ static void normalize(asn_per_outp_t *po) {
 		po->buffer += (po->nboff >> 3);
 		po->nbits  -= (po->nboff & ~0x07);
 		po->nboff  &= 0x07;
+	}
+}
+
+/*
+ * The NativeInteger codec has its own code for constrained whole numbers.
+ * Check that it produces the same bits as the INTEGER codec, and that
+ * it reads them back.
+ */
+static void
+check_native(int lineno, int unsigned_, long value,
+             const asn_per_constraints_t *cts) {
+	struct asn_INTEGER_specifics_s specs;
+	asn_TYPE_descriptor_t td;
+	INTEGER_t st;
+	long *decoded = 0;
+	asn_enc_rval_t ref_rval, nat_rval;
+	asn_dec_rval_t dec_rval;
+	asn_per_outp_t ref_po, nat_po;
+	asn_per_data_t pd;
+
+	memset(&st, 0, sizeof(st));
+	memset(&td, 0, sizeof(td));
+	memset(&ref_po, 0, sizeof(ref_po));
+	memset(&nat_po, 0, sizeof(nat_po));
+	memset(&pd, 0, sizeof(pd));
+	memset(&specs, 0, sizeof(specs));
+
+	specs.field_width = sizeof(long);
+	specs.field_unsigned = unsigned_;
+	td.name = "NativeInteger";
+	td.specifics = &specs;
+
+	if(unsigned_)
+		asn_ulong2INTEGER(&st, (unsigned long)value);
+	else
+		asn_long2INTEGER(&st, value);
+
+	ref_po.buffer = ref_po.tmpspace;
+	ref_po.nbits = 8 * sizeof(ref_po.tmpspace);
+	ref_po.output = FailOut;
+	nat_po.buffer = nat_po.tmpspace;
+	nat_po.nbits = 8 * sizeof(nat_po.tmpspace);
+	nat_po.output = FailOut;
+
+	asn_DEF_INTEGER.specifics = &specs;
+	ref_rval = INTEGER_encode_uper(&asn_DEF_INTEGER, cts, &st, &ref_po);
+	nat_rval = NativeInteger_encode_uper(&td, cts, &value, &nat_po);
+	ASN_STRUCT_RESET(asn_DEF_INTEGER, &st);
+
+	printf("%d: Native %s %ld, flags %d: %s\n", lineno,
+	  unsigned_ ? "unsigned" : "signed", value, (int)cts->value.flags,
+	  ref_rval.encoded < 0 ? "refused" : "encoded");
+	assert(nat_rval.encoded == ref_rval.encoded);
+	if(ref_rval.encoded < 0) return;
+
+	assert(nat_po.buffer - nat_po.tmpspace == ref_po.buffer - ref_po.tmpspace);
+	assert(nat_po.nboff == ref_po.nboff);
+	assert(nat_po.nbits == ref_po.nbits);
+	assert(memcmp(nat_po.tmpspace, ref_po.tmpspace,
+	              sizeof(nat_po.tmpspace)) == 0);
+
+	pd.buffer = nat_po.tmpspace;
+	pd.nbits = 8 * (nat_po.buffer - nat_po.tmpspace) + nat_po.nboff;
+	dec_rval = NativeInteger_decode_uper(0, &td, cts, (void **)&decoded, &pd);
+	assert(dec_rval.code == RC_OK);
+	assert(pd.nboff == pd.nbits);	/* Everything is consumed */
+	assert(*decoded == value);
+	free(decoded);
+
+	/* One bit short, the decoder has to ask for more. */
+	if(pd.nbits) {
+		long partial = 0;
+		void *partial_ptr = &partial;
+		pd.buffer = nat_po.tmpspace;
+		pd.nboff = 0;
+		pd.nbits -= 1;
+		pd.moved = 0;
+		dec_rval = NativeInteger_decode_uper(0, &td, cts, &partial_ptr, &pd);
+		assert(dec_rval.code == RC_WMORE);
+	}
+}
+
+static void
+check_native_variants(int lineno, int unsigned_, long value, long lbound,
+                      unsigned long ubound, int bit_range) {
+	struct asn_per_constraints_s cts;
+	long outside;
+
+	memset(&cts, 0, sizeof(cts));
+	cts.value.flags = APC_CONSTRAINED;
+	cts.value.range_bits = bit_range;
+	cts.value.effective_bits = bit_range;
+	cts.value.lower_bound = lbound;
+	cts.value.upper_bound = ubound;
+
+	/* In the range, with and without the extension marker. */
+	check_native(lineno, unsigned_, value, &cts);
+	cts.value.flags = APC_CONSTRAINED | APC_EXTENSIBLE;
+	check_native(lineno, unsigned_, value, &cts);
+
+	/* Outside of the range: an extension, or refused. */
+	outside = (long)ubound + 1;
+	if(outside > (long)ubound) {
+		check_native(lineno, unsigned_, outside, &cts);
+		cts.value.flags = APC_CONSTRAINED;
+		check_native(lineno, unsigned_, outside, &cts);
+	}
+	if(!unsigned_ && lbound - 1 < lbound) {
+		cts.value.flags = APC_CONSTRAINED | APC_EXTENSIBLE;
+		check_native(lineno, unsigned_, lbound - 1, &cts);
+		cts.value.flags = APC_CONSTRAINED;
+		check_native(lineno, unsigned_, lbound - 1, &cts);
+	}
+
+	/* No constraint at all, and a lower bound only. */
+	memset(&cts, 0, sizeof(cts));
+	cts.value.flags = APC_UNCONSTRAINED;
+	cts.value.range_bits = -1;
+	cts.value.effective_bits = -1;
+	check_native(lineno, unsigned_, value, &cts);
+	if(value >= 0) {
+		cts.value.flags = APC_SEMI_CONSTRAINED;
+		check_native(lineno, unsigned_, value, &cts);
+		cts.value.flags = APC_SEMI_CONSTRAINED | APC_EXTENSIBLE;
+		check_native(lineno, unsigned_, value, &cts);
 	}
 }
 
@@ -124,6 +251,8 @@ check_per_encode_constrained(int lineno, int unsigned_, long value, long lbound,
 	}
 	ASN_STRUCT_RESET(asn_DEF_INTEGER, &st);
 	ASN_STRUCT_FREE(asn_DEF_INTEGER, reconstructed_st);
+
+	check_native_variants(lineno, unsigned_, value, lbound, ubound, bit_range);
 }
 
 #define	CHECK(u, v, l, r, b)	\

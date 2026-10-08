@@ -27,14 +27,12 @@ INTEGER_jer_st_prealloc(INTEGER_t *st, int min_size) {
     }
 }
 /*
- * Decode the chunk of JSON text encoding INTEGER.
+ * Parse the chunk of JSON text encoding INTEGER into (*value_r).
  */
 static enum jer_pbd_rval
-INTEGER__jer_body_decode(const asn_TYPE_descriptor_t *td, void *sptr,
-                         const void *chunk_buf, size_t chunk_size) {
-    const asn_INTEGER_specifics_t *specs =
-        (const asn_INTEGER_specifics_t *)td->specifics;
-    INTEGER_t *st = (INTEGER_t *)sptr;
+INTEGER__jer_body_parse(const asn_TYPE_descriptor_t *td,
+                        const void *chunk_buf, size_t chunk_size,
+                        intmax_t *value_r) {
     intmax_t dec_value;
     const char *lp;
     const char *lstart = (const char *)chunk_buf;
@@ -53,9 +51,6 @@ INTEGER__jer_body_decode(const asn_TYPE_descriptor_t *td, void *sptr,
     if(chunk_size)
         ASN_DEBUG("INTEGER body %ld 0x%2x..0x%2x",
                   (long)chunk_size, *lstart, lstop[-1]);
-
-    if(INTEGER_jer_st_prealloc(st, (chunk_size/3) + 1))
-        return JPBD_SYSTEM_FAILURE;
 
     /*
      * We may have received a tag here. It will be processed inline.
@@ -137,18 +132,11 @@ INTEGER__jer_body_decode(const asn_TYPE_descriptor_t *td, void *sptr,
         /* The last symbol encountered was a digit. */
         switch(asn_strtoimax_lim(dec_value_start, &dec_value_end, &dec_value)) {
         case ASN_STRTOX_OK:
-            if(specs && specs->field_unsigned && (uintmax_t) dec_value <= ULONG_MAX) {
-                break;
-            } else if(dec_value >= LONG_MIN && dec_value <= LONG_MAX) {
-                break;
-            } else {
-                /*
-                 * We model INTEGER on long for JER,
-                 * to avoid rewriting all the tests at once.
-                 */
-                ASN_DEBUG("INTEGER exceeds long range");
-            }
-            /* Fall through */
+            /*
+             * Anything that fits intmax_t is fine for INTEGER.
+             * The native types check the range of long by themselves.
+             */
+            break;
         case ASN_STRTOX_ERROR_RANGE:
             ASN_DEBUG("INTEGER decode %s hit range limit", td->name);
             return JPBD_DECODER_LIMIT;
@@ -167,6 +155,26 @@ INTEGER__jer_body_decode(const asn_TYPE_descriptor_t *td, void *sptr,
         return JPBD_BROKEN_ENCODING;  /* No digits */
     }
 
+    *value_r = dec_value;
+    return JPBD_BODY_CONSUMED;
+}
+
+/*
+ * Decode the chunk of JSON text encoding INTEGER.
+ */
+static enum jer_pbd_rval
+INTEGER__jer_body_decode(const asn_TYPE_descriptor_t *td, void *sptr,
+                         const void *chunk_buf, size_t chunk_size) {
+    INTEGER_t *st = (INTEGER_t *)sptr;
+    enum jer_pbd_rval rval;
+    intmax_t dec_value;
+
+    if(INTEGER_jer_st_prealloc(st, (chunk_size/3) + 1))
+        return JPBD_SYSTEM_FAILURE;
+
+    rval = INTEGER__jer_body_parse(td, chunk_buf, chunk_size, &dec_value);
+    if(rval != JPBD_BODY_CONSUMED) return rval;
+
     /*
      * Convert the result of parsing of enumeration or a straight
      * decimal value into a BER representation.
@@ -177,6 +185,32 @@ INTEGER__jer_body_decode(const asn_TYPE_descriptor_t *td, void *sptr,
         }
 
     return JPBD_BODY_CONSUMED;
+}
+
+/*
+ * Decode the chunk of JSON text encoding INTEGER, keeping the number as it is.
+ */
+static enum jer_pbd_rval
+INTEGER__jer_body_decode_value(const asn_TYPE_descriptor_t *td, void *sptr,
+                               const void *chunk_buf, size_t chunk_size) {
+    INTEGER__text_value_t *result = (INTEGER__text_value_t *)sptr;
+    enum jer_pbd_rval rval;
+
+    rval = INTEGER__jer_body_parse(td, chunk_buf, chunk_size, &result->value);
+    if(rval == JPBD_BODY_CONSUMED) result->has_value = 1;
+    return rval;
+}
+
+asn_dec_rval_t
+INTEGER__decode_jer_value(const asn_codec_ctx_t *opt_codec_ctx,
+                          const asn_TYPE_descriptor_t *td,
+                          INTEGER__text_value_t *result, const void *buf_ptr,
+                          size_t size) {
+    void *result_ptr = result;
+    memset(result, 0, sizeof(*result));
+    return jer_decode_primitive(opt_codec_ctx, td,
+        &result_ptr, sizeof(*result),
+        buf_ptr, size, INTEGER__jer_body_decode_value);
 }
 
 asn_dec_rval_t
